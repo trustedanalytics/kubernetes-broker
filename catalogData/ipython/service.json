@@ -1,0 +1,18 @@
+{
+    "id": "9feedcbc-16a7-11e6-9595-00155d3d8807",
+    "name": "ipython-multinode",
+    "description": "IPython notebook server with the full SciPy stack + more",
+    "metadata":{
+      "displayName": "ipython",
+      "imageUrl": "",
+      "longDescription": "Docker container for the [SciPy stack](../scipystack) and configured IPython notebook server.",
+      "providerDisplayName": "",
+      "documentationUrl": "http://ipython.org/documentation.html",
+      "supportUrl": "https://github.com/ipython/ipython/wiki/Frequently-asked-questions"
+    },
+    "bindable": true,
+    "tags": [
+      "ipython",
+      "k8s"
+    ]
+}

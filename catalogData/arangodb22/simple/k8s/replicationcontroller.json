@@ -1,0 +1,56 @@
+{
+  "kind": "ReplicationController",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "$idx_and_short_serviceid",
+    "labels": {
+      "org": "$org",
+      "space": "$space",
+      "catalog_service_id": "$catalog_service_id",
+      "catalog_plan_id": "$catalog_plan_id",
+      "service_id": "$service_id",
+      "idx_and_short_serviceid": "$idx_and_short_serviceid",
+      "managed_by": "TAP"
+    }
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "service_id": "$service_id",
+      "idx_and_short_serviceid": "$idx_and_short_serviceid"
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "service_id": "$service_id",
+          "idx_and_short_serviceid": "$idx_and_short_serviceid",
+          "managed_by": "TAP"
+        }
+      },
+      "spec": {
+        "volumes": null,
+        "containers": [
+          {
+            "name": "k-arangodb22",
+            "image": "frodenas/arangodb",
+            "ports": [
+              {
+                "containerPort": 8529,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              { "name": "MANAGED_BY", "value":"TAP" },
+              { "name": "ARANGODB_PASSWORD",   "value": "$random1" },
+              { "name": "ARANGODB_USERNAME",   "value": "$random2" },
+              { "name": "ARANGODB_DBNAME",   "value": "$random3" }
+            ],
+            "imagePullPolicy": "IfNotPresent"
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
+      }
+    }
+  }
+}

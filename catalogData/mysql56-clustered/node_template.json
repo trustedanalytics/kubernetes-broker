@@ -1,0 +1,7 @@
+{
+  "nodeName": "$nodeName",
+  "host": "$hostname",
+  "ports": {
+    "3306/tcp": "$port_3306"
+  }
+}

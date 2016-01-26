@@ -1,0 +1,183 @@
+{
+  "kind": "ReplicationController",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "$idx_and_short_serviceid-node0",
+    "labels": {
+      "org": "$org",
+      "space": "$space",
+      "catalog_service_id": "$catalog_service_id",
+      "catalog_plan_id": "$catalog_plan_id",
+      "service_id": "$service_id",
+      "idx_and_short_serviceid": "$idx_and_short_serviceid-node0",
+      "managed_by": "TAP",
+      "instance": "node0"
+    }
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "service_id": "$service_id",
+      "idx_and_short_serviceid": "$idx_and_short_serviceid-node0"
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "service_id": "$service_id",
+          "idx_and_short_serviceid": "$idx_and_short_serviceid-node0",
+          "managed_by": "TAP",
+          "instance": "node0"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "k-elasticsearch13-clustered",
+            "image": "quay.io/pires/docker-elasticsearch-kubernetes:1.7.1-4",
+            "resources": {
+              "limits": {
+                "memory": "500M"
+              },
+              "requests": {
+                "memory": "100M"
+              }
+            },
+            "livenessProbe": {
+              "exec": {
+                "command": [ "/bin/sh", "-c", "/usr/bin/wget http://localhost:9200/_cluster/health?pretty -q -O - | /bin/grep cluster_name" ]
+              },
+              "initialDelaySeconds": 60,
+              "timeoutSeconds": 15,
+              "periodSeconds": 60,
+              "successThreshold": 1,
+              "failureThreshold": 4
+
+            },
+            "ports": [
+              {
+                "containerPort": 9200,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 9300,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              { "name": "MANAGED_BY", "value":"TAP" },
+
+              { "name": "KUBERNETES_CA_CERTIFICATE_FILE",   "value": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt" },
+              { "name": "NAMESPACE", "valueFrom": { "fieldRef": { "apiVersion": "v1", "fieldPath": "metadata.namespace" } } },
+              { "name": "DISCOVERY_SERVICE",   "value": "$idx_and_short_serviceid" },
+              { "name": "NODE_MASTER",   "value": "true" },
+              { "name": "NODE_DATA",   "value": "true" },
+              {
+                "name": "CLUSTER_NAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$idx_and_short_serviceid-elk-credentials",
+                    "key": "cluser-name"
+                  }
+                }
+              },
+              {
+                "name": "USERNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$idx_and_short_serviceid-elk-credentials",
+                    "key": "db-user"
+                  }
+                }
+              },
+              {
+                "name": "PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$idx_and_short_serviceid-elk-credentials",
+                    "key": "db-pass"
+                  }
+                }
+              },
+              {
+                "name": "DBNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$idx_and_short_serviceid-elk-credentials",
+                    "key": "db-name"
+                  }
+                }
+              }
+            ],
+            "volumeMounts": [
+              {
+                "name": "elasticsearch13-persistent-storage-node0",
+                "mountPath": "/var/lib/elasticsearch"
+              }
+            ],
+            "imagePullPolicy": "IfNotPresent"
+          },
+          {
+            "name": "kibana",
+            "image": "kibana:4.1.4",
+            "livenessProbe": {
+              "exec": {
+                "command": [ "/bin/sh", "-c", "/usr/bin/curl http://localhost:5601/ | /bin/grep window.KIBANA_VERSION" ]
+              },
+              "initialDelaySeconds": 180,
+              "timeoutSeconds": 15,
+              "periodSeconds": 60,
+              "successThreshold": 1,
+              "failureThreshold": 4
+            },
+            "readinessProbe": {
+              "exec": {
+                "command": [ "/bin/sh", "-c", "/usr/bin/curl http://localhost:5601/ | /bin/grep window.KIBANA_VERSION" ]
+              },
+              "initialDelaySeconds": 60,
+              "timeoutSeconds": 15,
+              "periodSeconds": 60,
+              "successThreshold": 1,
+              "failureThreshold": 4
+            },
+            "ports": [
+              {
+                "containerPort": 5601,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              { "name": "MANAGED_BY", "value":"TAP" },
+              { "name": "ELASTICSEARCH_URL",   "value": "http://localhost:9200" },
+              {
+                "name": "DBNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$idx_and_short_serviceid-elk-credentials",
+                    "key": "db-name"
+                  }
+                }
+              }
+            ],
+            "imagePullPolicy": "IfNotPresent"
+          }
+        ],
+        "volumes": [
+          {
+            "name": "elasticsearch13-persistent-storage-node0",
+            "persistentVolumeClaim": {
+              "claimName": "$idx_and_short_serviceid-node0"
+            }
+          },
+          {
+            "name": "elk-credentials",
+            "secret": {
+              "secretName": "$idx_and_short_serviceid-elk-credentials"
+            }
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
+      }
+    }
+  }
+}

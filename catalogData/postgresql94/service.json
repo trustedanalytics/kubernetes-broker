@@ -1,0 +1,19 @@
+{
+    "id": "12b049ec-16a9-11e6-8ca4-00155d3d8807",
+    "name": "postgresql94-multinode",
+    "description": "PostgreSQL 9.4 service for application development and testing",
+    "bindable": true,
+    "metadata":{
+      "displayName": "Postgresql9.4",
+      "longDescription": "A PostgreSQL 9.4 service for development and testing running inside a Docker container",
+      "providerDisplayName": "Pivotal Software",
+      "documentationUrl": "http://docs.run.pivotal.io",
+      "supportUrl": "http://support.run.pivotal.io/home"
+    },
+    "tags": [
+      "postgresql94",
+      "postgresql",
+      "relational",
+      "k8s"
+    ]
+}

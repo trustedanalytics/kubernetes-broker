@@ -1,0 +1,7 @@
+/certs/
+.idea
+/application/
+.cache
+/pkg
+/bin
+build_info.ini

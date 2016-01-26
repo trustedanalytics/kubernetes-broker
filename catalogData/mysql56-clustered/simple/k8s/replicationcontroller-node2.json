@@ -1,0 +1,138 @@
+{
+  "kind": "ReplicationController",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "$idx_and_short_serviceid-node2",
+    "labels": {
+      "org": "$org",
+      "space": "$space",
+      "catalog_service_id": "$catalog_service_id",
+      "catalog_plan_id": "$catalog_plan_id",
+      "service_id": "$service_id",
+      "idx_and_short_serviceid": "$idx_and_short_serviceid-node2",
+      "managed_by": "TAP"
+    }
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "service_id": "$service_id",
+      "idx_and_short_serviceid": "$idx_and_short_serviceid-node2"
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "service_id": "$service_id",
+          "idx_and_short_serviceid": "$idx_and_short_serviceid-node2",
+          "managed_by": "TAP"
+        }
+      },
+      "spec": {
+        "serviceAccountName": "$idx_and_short_serviceid-node2",
+        "volumes": [
+          {
+            "name": "mysql-credentials",
+            "secret": {
+              "secretName": "$idx_and_short_serviceid-mysql-credentials"
+            }
+          }
+        ],
+        "containers": [
+          {
+            "name": "k-mysql56",
+            "image": "mysql56-percona_xtradb_cluster_5_6",
+            "ports": [
+              {
+                "containerPort": 3306,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 4444,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 4567,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 4568,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              { "name": "MANAGED_BY", "value":"TAP" },
+              {
+                "name": "MYSQL_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$idx_and_short_serviceid-mysql-credentials",
+                    "key": "mysql-password"
+                  }
+                }
+              },
+              {
+                "name": "MYSQL_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$idx_and_short_serviceid-mysql-credentials",
+                    "key": "mysql-user"
+                  }
+                }
+              },
+              {
+                "name": "MYSQL_DATABASE",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$idx_and_short_serviceid-mysql-credentials",
+                    "key": "mysql-database"
+                  }
+                }
+              },
+              {
+                "name": "WSREP_SST_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$idx_and_short_serviceid-mysql-credentials",
+                    "key": "wsrep-sst-user"
+                  }
+                }
+              },
+              {
+                "name": "WSREP_SST_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$idx_and_short_serviceid-mysql-credentials",
+                    "key": "wsrep-sst-password"
+                  }
+                }
+              },
+              {
+                "name": "MYSQL_ROOT_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$idx_and_short_serviceid-mysql-credentials",
+                    "key": "mysql-root-password"
+                  }
+                }
+              },
+              { "name": "GALERA_CLUSTER", "value":"true" },
+              { "name": "WSREP_CLUSTER_ADDRESS",   "value": " gcomm://" },
+              { "name": "SERVICE_LABEL",   "value": "$idx_and_short_serviceid" },
+              { "name": "USE_IP",   "value": "true" }
+            ],
+            "volumeMounts": [
+              {
+                "name": "mysql-credentials",
+                "readOnly": true,
+                "mountPath": "/etc/mysql-credentials"
+              }
+            ],
+            "imagePullPolicy": "IfNotPresent"
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
+      }
+    }
+  }
+}

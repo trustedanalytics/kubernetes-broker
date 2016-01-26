@@ -1,0 +1,18 @@
+---
+applications:
+- name: kubernetes-broker
+  memory: 256M
+  instances: 1
+  path: .
+  command: ./application/kubernetes-broker
+  buildpack: https://github.com/cloudfoundry/binary-buildpack.git
+  services:
+    - sso
+    - kubernetes-creator-credentials
+  env:
+    VERSION: "0.1.0"
+    AUTH_USER: admin
+    AUTH_PASS: password
+    ACCEPT_INCOMPLETE: true
+    INSECURE_SKIP_VERIFY: true
+    MAX_ORG_QUOTA: 10

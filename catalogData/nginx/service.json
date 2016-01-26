@@ -1,0 +1,10 @@
+{
+    "id": "c70e5bfa-16a8-11e6-aeb1-00155d3d8807",
+    "name": "nginx-multinode",
+    "description": "simplest possible k8s service",
+    "bindable": true,
+    "tags": [
+      "k8s",
+      "test"
+    ]
+}

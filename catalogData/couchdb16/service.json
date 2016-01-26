@@ -1,0 +1,20 @@
+{
+    "id": "62d11516-16a7-11e6-9a6d-00155d3d8807",
+    "name": "couchdb16-multinode",
+    "description": "CouchDB 1.6 service for application development and testing",
+    "metadata":{
+      "displayName": "CouchDB 1.6",
+      "imageUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAMAAAANIilAAAAA5FBMVEUAAAD///9WX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3QSvSEbAAAAS3RSTlMAAAEDBgkKCxATFRoeICUpMjQ1Nzg/QUZHSFVcXWBjcHh7foCCiI2Ql5ibnqyvsLG3usHCyMrLzNLa2+Dj5OXs7vDx8vX3+Pv8/f6V8ZhxAAABEElEQVR4Xu3WWU/CQBRA4RE3RHBnXFDrgtZ9bV3ADRBpe/7//3E6TVOMSaeEGNT0PN/v5SY3uWJsiH41znGOhW7tPiBrL3vj2sR43WeQTr/gBwZrvg9PgrdUzNisC5t9uAgtkTkbtkaBc1xY3T2ArlUrZ5Er29YNXOwsazx1TRRe3Uinr4g7KSh8SFLNhI9IshR+hXM77A5uDXaiC8f7YZfwqDA8R2AOmgZchiehKwEhjknFjJOR4nf8ZqVXT8Hmfgx37PTOUrBxYQvD4MpocI7/9GH4tGc0XiRLnZLGG+Ar7MBHM+wdGrahBngtVRtwFJY+cb2qMFTtEedLhYV0Ih64UhiTbhBRR4p/+4flOMefpAXbmjbAmFwAAAAASUVORK5CYII=",
+      "longDescription": "A CouchDB 1.6 service for development and testing running inside a Docker container",
+      "providerDisplayName": "Pivotal Software",
+      "documentationUrl": "http://docs.run.pivotal.io",
+      "supportUrl": "http://support.run.pivotal.io/home"
+    },
+    "bindable": true,
+    "tags": [
+      "couchdb16",
+      "couchdb",
+      "document",
+      "k8s"
+    ]
+}

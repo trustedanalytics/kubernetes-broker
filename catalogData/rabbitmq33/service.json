@@ -1,0 +1,20 @@
+{
+    "id": "20c4b6b2-16a9-11e6-aa61-00155d3d8807",
+    "name": "rabbitmq33-multinode",
+    "description": "RabbitMQ 3.3 service for application development and testing",
+    "metadata":{
+      "displayName": "RabbitMQ 3.3",
+      "imageUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAMAAAANIilAAAAAUVBMVEUAAAD///9WX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RWX3RuH96cAAAAGnRSTlMAAAUPEBkwN0tQY3CQoK+wwMnK0N3g7O7w9KTmSYcAAACLSURBVHhe7dfXCoQwEEbhWNcYNZY1lvd/UM2wZECxrQXUOZc/fHchIcza0atxi/msT+BQsGEHYyV1X8QZDOtwCnuEmAO4MSZMmPAvxONOwaE0fQDLYWoaL5fOYcIeNwWbMW9N9eU4EbrqPyzAlJdgwnmsawDf5YTZrsl5wmVAWMmplp+b9e3EL/4adTF8SfJrqMLuAAAAAElFTkSuQmCC",
+      "longDescription": "A RabbitMQ 3.3 service for development and testing running inside a Docker container",
+      "providerDisplayName": "Pivotal Software",
+      "documentationUrl": "http://docs.run.pivotal.io",
+      "supportUrl": "http://support.run.pivotal.io/home"
+    },
+    "bindable": true,
+    "tags": [
+      "rabitmq33",
+      "rabitmq",
+      "amqp",
+      "k8s"
+    ]
+}

@@ -1,0 +1,6 @@
+{
+  "id": "af569164-cedf-4a0c-97d9-6bef243923fa",
+  "name": "clustered-persistent",
+  "description": "Persistent multi-node ELK stack",
+  "free": true
+}
