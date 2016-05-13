@@ -30,12 +30,13 @@ type K8sCreatorRest interface {
 }
 
 type K8sCreatorConnector struct {
-	ApiVersion string
-	Server     string
-	Username   string
-	Password   string
-	Client     *http.Client
-	OrgQuota   int
+	ApiVersion       string
+	Server           string
+	Username         string
+	Password         string
+	Client           *http.Client
+	OrgQuota         int
+	KubernetesClient KubernetesClientCreator
 }
 
 type K8sClusterCredential struct {
@@ -53,11 +54,12 @@ func NewK8sCreatorConnector(server, user, pass string, maxOrgQuota int) *K8sCrea
 	}
 
 	return &K8sCreatorConnector{
-		Server:   server,
-		Username: user,
-		Password: pass,
-		Client:   clientCreator,
-		OrgQuota: maxOrgQuota,
+		Server:           server,
+		Username:         user,
+		Password:         pass,
+		Client:           clientCreator,
+		OrgQuota:         maxOrgQuota,
+		KubernetesClient: &KubernetesRestCreator{},
 	}
 }
 

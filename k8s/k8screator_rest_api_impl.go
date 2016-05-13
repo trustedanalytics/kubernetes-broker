@@ -19,12 +19,14 @@
 package k8s
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
-
+	"github.com/cloudfoundry-community/go-cfenv"
 	brokerHttp "github.com/trustedanalytics/kubernetes-broker/http"
+	"k8s.io/kubernetes/pkg/api"
+	"time"
 )
 
 func (k *K8sCreatorConnector) DeleteCluster(org string) error {
@@ -70,6 +72,38 @@ func (k *K8sCreatorConnector) PostCluster(org string) (int, error) {
 	return status, nil
 }
 
+func (k *K8sCreatorConnector) CreateSecretForPrivateTapRepo(creds K8sClusterCredential) error {
+	c, err := k.KubernetesClient.GetNewClient(creds)
+	if err != nil {
+		return err
+	}
+
+	secret := api.Secret{}
+	secret.Name = "private-tap-repo-secret"
+	secret.Type = api.SecretTypeDockercfg
+	secret.Data = map[string][]byte{}
+
+	secretValues := map[string]string{}
+	secretValues["username"] = cfenv.CurrentEnv()["KUBE_REPO_USER"]
+	secretValues["password"] = cfenv.CurrentEnv()["KUBE_REPO_PASS"]
+	secretValues["email"] = cfenv.CurrentEnv()["KUBE_REPO_MAIL"]
+	secretValues["auth"] = base64.StdEncoding.EncodeToString([]byte(secretValues["username"] + ":" + secretValues["password"]))
+
+	secretContent := map[string]map[string]string{}
+	secretContent[cfenv.CurrentEnv()["KUBE_REPO_URL"]] = secretValues
+	secret.Data[".dockercfg"], err = json.Marshal(secretContent)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = c.Secrets(api.NamespaceDefault).Create(&secret)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (k *K8sCreatorConnector) checkIfClustersQuotaNotExeeded() error {
 	clusters, err := k.GetClusters()
 	if err != nil {
@@ -108,6 +142,12 @@ func (k *K8sCreatorConnector) GetOrCreateCluster(org string) (K8sClusterCredenti
 
 		if status == 200 && k.IsApiWorking(kresp) {
 			logger.Warning("[GetOrCreateCluster] Cluster already created for org:", org)
+			if wasCreated == true {
+				err = k.CreateSecretForPrivateTapRepo(kresp)
+				if err != nil {
+					logger.Error("[GetOrCreateCluster] ERROR: Unable to create secret with credentials for private TAP repo!", err)
+				}
+			}
 			return kresp, nil
 		} else if status == 404 {
 			if !wasCreated {

@@ -28,6 +28,11 @@
         }
       },
       "spec": {
+        "imagePullSecrets": [
+          {
+            "name": "private-tap-repo-secret"
+          }
+        ],
         "serviceAccountName": "$idx_and_short_serviceid-node3",
         "volumes": [
           {
@@ -40,7 +45,7 @@
         "containers": [
           {
             "name": "k-mysql56",
-            "image": "mysql56-percona_xtradb_cluster_5_6",
+            "image": "quay.io/trustedanalytics/mysql56-cluster",
             "ports": [
               {
                 "containerPort": 3306,

@@ -28,10 +28,15 @@
         }
       },
       "spec": {
+        "imagePullSecrets": [
+          {
+            "name": "private-tap-repo-secret"
+          }
+        ],
         "containers": [
           {
             "name": "k-persistent-postgresql93",
-            "image": "custom-postgres:9.3",
+            "image": "quay.io/trustedanalytics/postgresql:9.3",
             "ports": [
               {
                 "containerPort": 5432,

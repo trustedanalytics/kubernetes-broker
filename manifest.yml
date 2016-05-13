@@ -16,3 +16,7 @@ applications:
     ACCEPT_INCOMPLETE: true
     INSECURE_SKIP_VERIFY: true
     MAX_ORG_QUOTA: 10
+    KUBE_REPO_USER: ""
+    KUBE_REPO_PASS: ""
+    KUBE_REPO_URL: ""
+    KUBE_REPO_MAIL: ""

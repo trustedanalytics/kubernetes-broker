@@ -36,11 +36,16 @@
             }
           }
         ],
+        "imagePullSecrets": [
+          {
+            "name": "private-tap-repo-secret"
+          }
+        ],
         "serviceAccountName": "$idx_and_short_serviceid-pgpool",
         "containers": [
           {
             "name": "k-postgresql94",
-            "image": "my-pgpool",
+            "image": "quay.io/trustedanalytics/pgpool:3.4.6",
             "command": ["/bin/bash"],
             "args": ["-c", "export MASTER_HOST_NAME=${MASTER_HOST_NAME^^} && export REPLICATION_HOST=${!MASTER_HOST_NAME} && export PGPASSWORD=${REPLICATION_PASS} && while true ; do  ERR=`psql -h ${REPLICATION_HOST} -U ${REPLICATION_USER} -c 'SELECT 1' -d postgres  2>&1 >/dev/null` ; [[ ${ERR} != '' ]] || break ; echo 'Waiting for master ...' && sleep 5; done && /start.sh "],
             "ports": [

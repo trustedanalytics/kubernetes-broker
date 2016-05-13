@@ -1,9 +1,8 @@
 FROM postgres:9.4
+MAINTAINER Adrian Weber <adrian.weber@intel.com>
 
 ENV PGPOOL_VERSION 3.4.6
 ENV PGPOOL_CONF_HOME /usr/local/etc
-
-RUN apt-get update
 
 # pgpool port
 EXPOSE 5432
