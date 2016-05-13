@@ -58,6 +58,16 @@ func (c *Context) Catalog(rw web.ResponseWriter, req *web.Request) {
 	WriteJson(rw, services, http.StatusOK)
 }
 
+func (c *Context) GetServiceDetails(rw web.ResponseWriter, req *web.Request) {
+	service_id := req.PathParams["service_id"]
+
+	service, err := catalog.GetServiceMetadataByServiceId(service_id)
+	if err != nil {
+		Respond404(rw, err)
+	}
+	WriteJson(rw, service, http.StatusOK)
+}
+
 type ServiceInstancesPutRequest struct {
 	OrganizationGuid string          `json:"organization_guid"`
 	PlanId           string          `json:"plan_id"`

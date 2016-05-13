@@ -80,6 +80,12 @@ func Respond500(rw web.ResponseWriter, err error) {
 	fmt.Fprintf(rw, "%s", err.Error())
 }
 
+func Respond404(rw web.ResponseWriter, err error) {
+	logger.Error("Respond404: reason: error ", err)
+	rw.WriteHeader(http.StatusNotFound)
+	fmt.Fprintf(rw, "%s", err.Error())
+}
+
 func (c *Context) Error(rw web.ResponseWriter, r *web.Request, err interface{}) {
 	logger.Error("Respond500: reason: error ", err)
 	rw.WriteHeader(http.StatusInternalServerError)

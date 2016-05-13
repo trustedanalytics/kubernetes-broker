@@ -25,6 +25,7 @@ import (
 )
 
 const URLcatalogPath = "/v2/catalog"
+const URLserviceDetailsPath = "/v2/catalog/:service_id"
 const URLservicePath = "/rest/kubernetes/:org_id/:space_id/service/:instance_id"
 const URLservicesPath = "/rest/kubernetes/:org_id/:space_id/services"
 const URLsecretPath = "/rest/kubernetes/:org_id/secret/:key"
@@ -203,6 +204,23 @@ func TestGetCatalog(t *testing.T) {
 		Convey("Should returns proper response", func() {
 			rr := sendRequest("GET", URLcatalogPath, nil, r)
 			assertResponse(rr, "", 200)
+		})
+	})
+}
+
+func TestGetServiceDetails(t *testing.T) {
+	r, _, _, _, _ := prepareMocksAndRouter(t)
+	r.Get(URLserviceDetailsPath, (*Context).GetServiceDetails)
+
+	Convey("Test GetServiceDetails", t, func() {
+		Convey("Should returns proper response", func() {
+			rr := sendRequest("GET", URLcatalogPath + "/testServiceId", nil, r)
+			assertResponse(rr, "", 200)
+		})
+
+		Convey("Should returns 404", func() {
+			rr := sendRequest("GET", URLcatalogPath + "/non-existentTestServiceId", nil, r)
+			assertResponse(rr, "", 404)
 		})
 	})
 }
