@@ -25,7 +25,8 @@ import (
 )
 
 const URLcatalogPath = "/v2/catalog"
-const URLserviceDetailsPath = "/v2/catalog/:service_id"
+const URLrestCatalogPath = "/rest/kubernetes/catalog"
+const URLserviceDetailsPath = "/rest/kubernetes/catalog/:service_id"
 const URLservicePath = "/rest/kubernetes/:org_id/:space_id/service/:instance_id"
 const URLservicesPath = "/rest/kubernetes/:org_id/:space_id/services"
 const URLsecretPath = "/rest/kubernetes/:org_id/secret/:key"
@@ -214,12 +215,12 @@ func TestGetServiceDetails(t *testing.T) {
 
 	Convey("Test GetServiceDetails", t, func() {
 		Convey("Should returns proper response", func() {
-			rr := sendRequest("GET", URLcatalogPath+"/testServiceId", nil, r)
+			rr := sendRequest("GET", URLrestCatalogPath+"/testServiceId", nil, r)
 			assertResponse(rr, "", 200)
 		})
 
 		Convey("Should returns 404", func() {
-			rr := sendRequest("GET", URLcatalogPath+"/non-existentTestServiceId", nil, r)
+			rr := sendRequest("GET", URLrestCatalogPath+"/non-existentTestServiceId", nil, r)
 			assertResponse(rr, "", 404)
 		})
 	})

@@ -79,9 +79,9 @@ func main() {
 	jwtRouter.Post("/kubernetes/:org_id/secret/:key", (*Context).CreateSecret)
 	jwtRouter.Delete("/kubernetes/:org_id/secret/:key", (*Context).DeleteSecret)
 	jwtRouter.Put("/kubernetes/:org_id/secret/:key", (*Context).UpdateSecret)
+	jwtRouter.Get("/kubernetes/catalog/:service_id", (*Context).GetServiceDetails)
 
 	basicAuthRouter.Get("/catalog", (*Context).Catalog)
-	basicAuthRouter.Get("/catalog/:service_id", (*Context).GetServiceDetails)
 	basicAuthRouter.Put("/service_instances/:instance_id", (*Context).ServiceInstancesPut)
 	basicAuthRouter.Get("/service_instances/:instance_id/last_operation", (*Context).ServiceInstancesGetLastOperation)
 	basicAuthRouter.Delete("/service_instances/:instance_id", (*Context).ServiceInstancesDelete)
