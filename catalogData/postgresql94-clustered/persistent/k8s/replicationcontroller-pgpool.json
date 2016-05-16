@@ -1,0 +1,109 @@
+{
+  "kind": "ReplicationController",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "$idx_and_short_serviceid-pgpool",
+    "labels": {
+      "org": "$org",
+      "space": "$space",
+      "catalog_service_id": "$catalog_service_id",
+      "catalog_plan_id": "$catalog_plan_id",
+      "service_id": "$service_id",
+      "idx_and_short_serviceid": "$idx_and_short_serviceid-pgpool",
+      "managed_by": "TAP"
+    }
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "service_id": "$service_id",
+      "idx_and_short_serviceid": "$idx_and_short_serviceid-pgpool"
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "service_id": "$service_id",
+          "idx_and_short_serviceid": "$idx_and_short_serviceid-pgpool",
+          "managed_by": "TAP"
+        }
+      },
+      "spec": {
+        "volumes": [
+          {
+            "name": "postgresql-credentials",
+            "secret": {
+              "secretName": "$idx_and_short_serviceid-postgresql-credentials"
+            }
+          }
+        ],
+        "imagePullSecrets": [
+          {
+            "name": "private-tap-repo-secret"
+          }
+        ],
+        "serviceAccountName": "$idx_and_short_serviceid-pgpool",
+        "containers": [
+          {
+            "name": "k-postgresql94",
+            "image": "quay.io/trustedanalytics/pgpool:3.4.6",
+            "command": ["/bin/bash"],
+            "args": ["-c", "export MASTER_HOST_NAME=${MASTER_HOST_NAME^^} && export REPLICATION_HOST=${!MASTER_HOST_NAME} && export PGPASSWORD=${REPLICATION_PASS} && while true ; do  ERR=`psql -h ${REPLICATION_HOST} -U ${REPLICATION_USER} -c 'SELECT 1' -d postgres  2>&1 >/dev/null` ; [[ ${ERR} != '' ]] || break ; echo 'Waiting for master ...' && sleep 5; done && /start.sh "],
+            "ports": [
+              {
+                "containerPort": 5432,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              { "name": "REPLICATION_USER", "value": "postgres"},
+              {
+                "name": "REPLICATION_PASS",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$idx_and_short_serviceid-postgresql-credentials",
+                    "key": "pg-password"
+                  }
+                }
+              },
+              {
+                "name": "DB_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$idx_and_short_serviceid-postgresql-credentials",
+                    "key": "db-pass"
+                  }
+                }
+              },
+              {
+                "name": "DB_PASS",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$idx_and_short_serviceid-postgresql-credentials",
+                    "key": "db-user"
+                  }
+                }
+              },
+              {
+                "name": "DB_NAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$idx_and_short_serviceid-postgresql-credentials",
+                    "key": "db-name"
+                  }
+                }
+              },
+              { "name": "PG_DATA_HOME", "value": "/var/lib/postgresql/9.4/main"},
+              { "name": "MASTER_HOST_NAME", "value": "$idx_and_short_serviceid_MASTER_SERVICE_HOST"},
+              { "name": "SLAVE_1_HOST_NAME", "value": "$idx_and_short_serviceid_SLAVE_1_SERVICE_HOST"},
+              { "name": "SLAVE_2_HOST_NAME", "value": "$idx_and_short_serviceid_SLAVE_2_SERVICE_HOST"},
+              { "name": "MANAGED_BY", "value":"TAP" }
+            ],
+            "imagePullPolicy": "IfNotPresent"
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
+      }
+    }
+  }
+}

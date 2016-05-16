@@ -34,12 +34,15 @@ function prepare_pgpool_conf {
 
 function download_dependencies {
     # We'll need postgresql-server-dev-9.4 to build pgpool extensions,
+    echo "Downloading required system dependencies..." &&
+    apt-get update &&
     apt-get install -y postgresql-server-dev-9.4 curl build-essential &&
     curl -L -o pgpool-II-${PGPOOL_VERSION}.tar.gz http://www.pgpool.net/download.php?f=pgpool-II-${PGPOOL_VERSION}.tar.gz &&
     tar zxvf pgpool-II-${PGPOOL_VERSION}.tar.gz
 }
 
 function compile_pgpool {
+    echo "Compiling pgpool package..." &&
     cd /pgpool-II-${PGPOOL_VERSION} &&
     ./configure --with-openssl &&
     make &&
