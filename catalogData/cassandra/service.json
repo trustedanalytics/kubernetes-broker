@@ -13,6 +13,7 @@
   "bindable": true,
   "tags": [
     "cassandra",
-    "cassandra21"
+    "cassandra21",
+    "k8s"
   ]
 }
