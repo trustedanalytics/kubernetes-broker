@@ -46,8 +46,8 @@ func (k *K8sCreatorConnector) GetCluster(org string) (int, K8sClusterCredential,
 	logger.Info("[GetCluster] GetCluster on url: ", url)
 	status, resp, err := brokerHttp.RestGET(url, &brokerHttp.BasicAuth{k.Username, k.Password}, k.Client)
 
-	if status == 404 || status == 204 {
-		return status, K8sClusterCredential{}, nil
+	if status != 200 {
+		return status, K8sClusterCredential{}, errors.New("Cluster not exist!")
 	}
 
 	err = json.Unmarshal(resp, &k8sCreatorPostClusterResponse)
@@ -135,20 +135,17 @@ func (k *K8sCreatorConnector) GetOrCreateCluster(org string) (K8sClusterCredenti
 	for {
 		status, kresp, err := k.GetCluster(org)
 
-		if err != nil {
-			logger.Error("[GetOrCreateCluster] ERROR: GetCluster! We will not fetch/create requested cluster!", err)
-			return K8sClusterCredential{}, err
-		}
-
-		if status == 200 && k.IsApiWorking(kresp) {
-			logger.Warning("[GetOrCreateCluster] Cluster already created for org:", org)
-			if wasCreated == true {
-				err = k.CreateSecretForPrivateTapRepo(kresp)
-				if err != nil {
-					logger.Error("[GetOrCreateCluster] ERROR: Unable to create secret with credentials for private TAP repo!", err)
+		if status == 200 {
+			if k.IsApiWorking(kresp) {
+				logger.Warning("[GetOrCreateCluster] Cluster already created for org:", org)
+				if wasCreated == true {
+					err = k.CreateSecretForPrivateTapRepo(kresp)
+					if err != nil {
+						logger.Error("[GetOrCreateCluster] ERROR: Unable to create secret with credentials for private TAP repo!", err)
+					}
 				}
+				return kresp, nil
 			}
-			return kresp, nil
 		} else if status == 404 {
 			if !wasCreated {
 				logger.Info("[GetOrCreateCluster] Creating cluster for org:", org)
@@ -165,6 +162,9 @@ func (k *K8sCreatorConnector) GetOrCreateCluster(org string) (K8sClusterCredenti
 			}
 		} else if status == 204 {
 			logger.Info("[GetOrCreateCluster] Waiting for cluster to finish creating for org:", org)
+		} else if err != nil {
+			logger.Error("[GetOrCreateCluster] ERROR: GetCluster! We will not fetch/create requested cluster!", err)
+			return K8sClusterCredential{}, err
 		}
 		time.Sleep(30 * time.Second)
 	}

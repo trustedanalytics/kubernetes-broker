@@ -48,7 +48,7 @@ type K8sClusterCredential struct {
 }
 
 func NewK8sCreatorConnector(server, user, pass string, maxOrgQuota int) *K8sCreatorConnector {
-	clientCreator, err := brokerHttp.GetHttpClientWithBasicAuth()
+	clientCreator, _, err := brokerHttp.GetHttpClientWithBasicAuth()
 	if err != nil {
 		logger.Panic("Can't get http client!", err)
 	}

@@ -87,6 +87,6 @@ To configure our Mongo cluster we will use Mongo console client (https://www.mon
     ```
 
 ## WARN!
-Above instruction doesn't work, because kuberentes pods are not able to resolve internal consul address yet (will be fixed soon).
+Above instruction requires internal access to CF (e.g. by deployed apps).
 
-Please expose service first and then use its external address to configure clsuter in a way described above.
+Please expose service first and then use its external address to configure cluster from outside of CF.

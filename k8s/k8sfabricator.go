@@ -36,6 +36,7 @@ type KubernetesApi interface {
 		component *catalog.KubernetesComponent) (FabricateResult, error)
 	CheckKubernetesServiceHealthByServiceInstanceId(creds K8sClusterCredential, space, instance_id string) (bool, error)
 	DeleteAllByServiceId(creds K8sClusterCredential, space, service_id string) error
+	DeleteAllPersistentVolumes(creds K8sClusterCredential) error
 	GetAllPodsEnvsByServiceId(creds K8sClusterCredential, space, service_id string) ([]PodEnvs, error)
 	GetServiceVisibility(creds K8sClusterCredential, org, space, service_id string) ([]K8sServiceInfo, error)
 	GetServicesVisibility(creds K8sClusterCredential, org, space string) ([]K8sServiceInfo, error)
@@ -275,6 +276,39 @@ func (k *K8Fabricator) DeleteAllByServiceId(creds K8sClusterCredential, space, s
 	}
 
 	return nil
+}
+
+func (k *K8Fabricator) DeleteAllPersistentVolumes(creds K8sClusterCredential) error {
+
+	c, err := k.KubernetesClient.GetNewClient(creds)
+	if err != nil {
+		return err
+	}
+
+	pvList, err := c.PersistentVolumes().List(api.ListOptions{
+		LabelSelector: labels.NewSelector(),
+	})
+	if err != nil {
+		logger.Error("[DeleteAllPersistentVolumes] List PersistentVolume failed:", err)
+		return err
+	}
+
+	var errorFound bool = false
+	for _, i := range pvList.Items {
+		name := i.ObjectMeta.Name
+		logger.Debug("[DeleteAllPersistentVolumes] Delete PersistentVolume:", name)
+		err = c.PersistentVolumes().Delete(name)
+		if err != nil {
+			logger.Error("[DeleteAllPersistentVolumes] Delete PersistentVolume: "+name+" failed!", err)
+			errorFound = true
+		}
+	}
+
+	if errorFound {
+		return errors.New("Error on deleting PersistentVolume!")
+	} else {
+		return nil
+	}
 }
 
 func (k *K8Fabricator) GetServiceVisibility(creds K8sClusterCredential, org, space, service_id string) ([]K8sServiceInfo, error) {

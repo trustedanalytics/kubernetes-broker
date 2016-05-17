@@ -63,6 +63,16 @@ func (_mr *_MockKubernetesApiRecorder) DeleteAllByServiceId(arg0, arg1, arg2 int
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "DeleteAllByServiceId", arg0, arg1, arg2)
 }
 
+func (_m *MockKubernetesApi) DeleteAllPersistentVolumes(creds K8sClusterCredential) error {
+	ret := _m.ctrl.Call(_m, "DeleteAllPersistentVolumes", creds)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+func (_mr *_MockKubernetesApiRecorder) DeleteAllPersistentVolumes(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "DeleteAllPersistentVolumes", arg0)
+}
+
 func (_m *MockKubernetesApi) GetAllPodsEnvsByServiceId(creds K8sClusterCredential, space string, service_id string) ([]PodEnvs, error) {
 	ret := _m.ctrl.Call(_m, "GetAllPodsEnvsByServiceId", creds, space, service_id)
 	ret0, _ := ret[0].([]PodEnvs)
@@ -173,6 +183,17 @@ func (_mr *_MockKubernetesApiRecorder) ListReplicationControllers(arg0, arg1 int
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "ListReplicationControllers", arg0, arg1)
 }
 
+func (_m *MockKubernetesApi) GetSecret(creds K8sClusterCredential, key string) (*api.Secret, error) {
+	ret := _m.ctrl.Call(_m, "GetSecret", creds, key)
+	ret0, _ := ret[0].(*api.Secret)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+func (_mr *_MockKubernetesApiRecorder) GetSecret(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetSecret", arg0, arg1)
+}
+
 func (_m *MockKubernetesApi) CreateSecret(creds K8sClusterCredential, secret api.Secret) error {
 	ret := _m.ctrl.Call(_m, "CreateSecret", creds, secret)
 	ret0, _ := ret[0].(error)
@@ -191,17 +212,6 @@ func (_m *MockKubernetesApi) DeleteSecret(creds K8sClusterCredential, key string
 
 func (_mr *_MockKubernetesApiRecorder) DeleteSecret(arg0, arg1 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "DeleteSecret", arg0, arg1)
-}
-
-func (_m *MockKubernetesApi) GetSecret(creds K8sClusterCredential, key string) (*api.Secret, error) {
-	ret := _m.ctrl.Call(_m, "GetSecret", creds, key)
-	ret0, _ := ret[0].(*api.Secret)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-func (_mr *_MockKubernetesApiRecorder) GetSecret(arg0, arg1 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetSecret", arg0, arg1)
 }
 
 func (_m *MockKubernetesApi) UpdateSecret(creds K8sClusterCredential, secret api.Secret) error {

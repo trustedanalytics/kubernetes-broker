@@ -214,12 +214,12 @@ func TestGetServiceDetails(t *testing.T) {
 
 	Convey("Test GetServiceDetails", t, func() {
 		Convey("Should returns proper response", func() {
-			rr := sendRequest("GET", URLcatalogPath + "/testServiceId", nil, r)
+			rr := sendRequest("GET", URLcatalogPath+"/testServiceId", nil, r)
 			assertResponse(rr, "", 200)
 		})
 
 		Convey("Should returns 404", func() {
-			rr := sendRequest("GET", URLcatalogPath + "/non-existentTestServiceId", nil, r)
+			rr := sendRequest("GET", URLcatalogPath+"/non-existentTestServiceId", nil, r)
 			assertResponse(rr, "", 404)
 		})
 	})
@@ -293,6 +293,7 @@ func TestServiceInstancesDelete(t *testing.T) {
 					Return([]k8s.K8sServiceInfo{}, nil),
 				mockKubernetesApi.EXPECT().ListReplicationControllers(testCreds, tst.TestSpaceGuid).
 					Return(&api.ReplicationControllerList{}, nil),
+				mockKubernetesApi.EXPECT().DeleteAllPersistentVolumes(testCreds).Return(nil),
 				mockCreatorConnector.EXPECT().DeleteCluster(tst.TestOrgGuid).Return(nil),
 			)
 

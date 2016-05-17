@@ -366,6 +366,13 @@ func (c *Context) ServiceInstancesDelete(rw web.ResponseWriter, req *web.Request
 
 	if len(services) == 0 || len(controllers.Items) == 0 {
 		logger.Info("There is no more services in the org. Cluster will be removed now...")
+
+		err = c.KubernetesApi.DeleteAllPersistentVolumes(creds)
+		if err != nil {
+			Respond500(rw, err)
+			return
+		}
+
 		err = c.CreatorConnector.DeleteCluster(org)
 		if err != nil {
 			Respond500(rw, err)

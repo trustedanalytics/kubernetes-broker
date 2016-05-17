@@ -32,15 +32,16 @@ const MaxIdleconnetionPerHost int = 20
 
 var logger = logger_wrapper.InitLogger("http")
 
-func GetHttpClientWithCertAndCa() (*http.Client, error) {
+func GetHttpClientWithCertAndCa() (*http.Client, *http.Transport, error) {
+	//TODO consider move this certs to method args instead getting it from system env
+
 	cert, ca, err := getCertKeyAndCa(
-		//todo move it method arg
 		cfenv.CurrentEnv()["KUBERNETES_CERT_PEM_STRING"],
 		cfenv.CurrentEnv()["KUBERNETES_KEY_PEM_STRING"],
 		cfenv.CurrentEnv()["KUBERNETES_CA_PEM_STRING"],
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	tlsConfig := &tls.Config{
 		Certificates:       []tls.Certificate{cert},
@@ -57,14 +58,14 @@ func GetHttpClientWithCertAndCa() (*http.Client, error) {
 
 	client := &http.Client{Transport: transport}
 
-	return client, nil
+	return client, transport, nil
 }
 
-func GetHttpClientWithCa() (*http.Client, error) {
-	//todo move it method arg
+func GetHttpClientWithCa() (*http.Client, *http.Transport, error) {
+	//TODO consider move this cert to method arg instead getting it from system env
 	ca, err := getCa(cfenv.CurrentEnv()["KUBERNETES_CREATOR_CA_PEM_STRING"])
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	tlsConfig := &tls.Config{
 		RootCAs:            ca,
@@ -78,10 +79,10 @@ func GetHttpClientWithCa() (*http.Client, error) {
 	}
 
 	client := &http.Client{Transport: transport, Timeout: time.Duration(30 * time.Minute)}
-	return client, nil
+	return client, transport, nil
 }
 
-func GetHttpClientWithBasicAuth() (*http.Client, error) {
+func GetHttpClientWithBasicAuth() (*http.Client, *http.Transport, error) {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: IsInsecureSkipVerifyEnabled(),
 	}
@@ -93,7 +94,7 @@ func GetHttpClientWithBasicAuth() (*http.Client, error) {
 	}
 
 	client := &http.Client{Transport: transport, Timeout: time.Duration(30 * time.Minute)}
-	return client, nil
+	return client, transport, nil
 }
 
 func IsInsecureSkipVerifyEnabled() bool {
@@ -112,6 +113,8 @@ func getCertKeyAndCa(cert, key, ca string) (tls.Certificate, *x509.CertPool, err
 	s_key := strings.Replace(key, " ", "\n", -1)
 	s_key = strings.Replace(s_key, "-----BEGIN\nRSA\nPRIVATE\nKEY-----", "-----BEGIN RSA PRIVATE KEY-----", -1)
 	s_key = strings.Replace(s_key, "-----END\nRSA\nPRIVATE\nKEY-----", "-----END RSA PRIVATE KEY-----", -1)
+	s_key = strings.Replace(s_key, "-----BEGIN\nPRIVATE\nKEY-----", "-----BEGIN PRIVATE KEY-----", -1)
+	s_key = strings.Replace(s_key, "-----END\nPRIVATE\nKEY-----", "-----END PRIVATE KEY-----", -1)
 
 	s_ca := strings.Replace(ca, " ", "\n", -1)
 	s_ca = strings.Replace(s_ca, "-----BEGIN\nCERTIFICATE-----", "-----BEGIN CERTIFICATE-----", -1)

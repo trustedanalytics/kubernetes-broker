@@ -20,3 +20,4 @@ applications:
     KUBE_REPO_PASS: ""
     KUBE_REPO_URL: ""
     KUBE_REPO_MAIL: ""
+    KUBE_SSL_ACTIVE: false

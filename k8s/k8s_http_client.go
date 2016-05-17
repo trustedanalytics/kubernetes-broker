@@ -16,9 +16,10 @@
 package k8s
 
 import (
-	"crypto/tls"
 	"net/http"
+	"strconv"
 
+	"github.com/cloudfoundry-community/go-cfenv"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/client/restclient"
@@ -65,11 +66,34 @@ type KubernetesTestCreator struct {
 var logger = logger_wrapper.InitLogger("k8s")
 
 func (k *KubernetesRestCreator) GetNewClient(creds K8sClusterCredential) (KubernetesClient, error) {
+	return getKubernetesClient(creds)
+}
+
+func getKubernetesClient(creds K8sClusterCredential) (KubernetesClient, error) {
+	sslActive, parseError := strconv.ParseBool(cfenv.CurrentEnv()["KUBE_SSL_ACTIVE"])
+	if parseError != nil {
+		logger.Error("KUBE_SSL_ACTIVE env probably not set!")
+		return nil, parseError
+	}
+
+	var transport *http.Transport
+	var err error
+
+	if sslActive {
+		_, transport, err = brokerHttp.GetHttpClientWithCertAndCa()
+	} else {
+		_, transport, err = brokerHttp.GetHttpClientWithBasicAuth()
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
 	config := &restclient.Config{
 		Host:      creds.Server,
 		Username:  creds.Username,
 		Password:  creds.Password,
-		Transport: getKubernetesRestHTTPTransportSettings(),
+		Transport: transport,
 	}
 	return k8sClient.New(config)
 }
@@ -119,17 +143,4 @@ func (k *KubernetesTestCreator) LoadAdvancedResponses(params []KubernetesTestAdv
 
 	fakeClient.AddWatchReactor("*", testclient.DefaultWatchReactor(watch.NewFake(), nil))
 	k.testClient = fakeClient
-}
-
-func getKubernetesRestHTTPTransportSettings() *http.Transport {
-	tlsConfig := &tls.Config{
-		InsecureSkipVerify: brokerHttp.IsInsecureSkipVerifyEnabled(),
-		//ServerName: "kube-apiserver",  // if necessary, provide certificate name manually, after manual verification!
-	}
-	tlsConfig.BuildNameToCertificate()
-
-	return &http.Transport{
-		TLSClientConfig:     tlsConfig,
-		MaxIdleConnsPerHost: brokerHttp.MaxIdleconnetionPerHost,
-	}
 }
