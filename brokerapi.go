@@ -351,14 +351,14 @@ func (c *Context) ServiceInstancesDelete(rw web.ResponseWriter, req *web.Request
 	//check if there is more services, if not then remove cluster
 	//todo currently we use hardcoded "deault" space
 	//todo -> in the feature we should check if other spaces in organization also don't contain any services
-	services, err := c.KubernetesApi.GetServicesVisibility(creds, org, space)
+	services, err := c.KubernetesApi.GetServices(creds, org)
 	if err != nil {
-		Respond500(rw, err)
+		WriteJson(rw, ServiceInstancesDeleteResponse{}, http.StatusGone)
+		logger.Error(err)
 		return
 	}
 
 	controllers, err := c.KubernetesApi.ListReplicationControllers(creds, space)
-
 	if err != nil {
 		Respond500(rw, err)
 		return

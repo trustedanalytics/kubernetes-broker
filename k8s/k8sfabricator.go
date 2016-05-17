@@ -41,6 +41,7 @@ type KubernetesApi interface {
 	GetServiceVisibility(creds K8sClusterCredential, org, space, service_id string) ([]K8sServiceInfo, error)
 	GetServicesVisibility(creds K8sClusterCredential, org, space string) ([]K8sServiceInfo, error)
 	GetServiceCredentials(creds K8sClusterCredential, space, service_id string) ([]ServiceCredential, error)
+	GetServices(creds K8sClusterCredential, org string) ([]api.Service, error)
 	GetQuota(creds K8sClusterCredential, space string) (*api.ResourceQuotaList, error)
 	GetClusterWorkers(creds K8sClusterCredential) ([]string, error)
 	GetPodsStateByServiceId(creds K8sClusterCredential, service_id string) ([]PodStatus, error)
@@ -343,10 +344,12 @@ func (k *K8Fabricator) GetServicesVisibility(creds K8sClusterCredential, org, sp
 
 	c, err := k.KubernetesClient.GetNewClient(creds)
 	if err != nil {
+		logger.Error("[GetServicesVisibility] GetNewClient error", err)
 		return response, err
 	}
 	selector, err := getSelectorForManagedByLabel()
 	if err != nil {
+		logger.Error("[GetServicesVisibility] GetSelectorForManagedByLabel error", err)
 		return response, err
 	}
 
@@ -360,11 +363,37 @@ func (k *K8Fabricator) GetServicesVisibility(creds K8sClusterCredential, org, sp
 
 	servicesPublicTags, err := k.ConsulApi.GetServicesListWithPublicTagStatus(creds.ConsulEndpoint)
 	if err != nil {
+		logger.Error("[GetServicesVisibility]  ConsulApi.GetServicesListWithPublicTagStatus error", err)
 		return response, err
 	}
 
 	response = createServiceInfoList(org, space, k.Domain, services.Items, servicesPublicTags)
 	return response, nil
+}
+
+func (k *K8Fabricator) GetServices(creds K8sClusterCredential, org string) ([]api.Service, error) {
+	logger.Info("[GetServices] orgId:", org)
+	response := []api.Service{}
+
+	c, err := k.KubernetesClient.GetNewClient(creds)
+	if err != nil {
+		logger.Error("[GetServices] GetNewClient error", err)
+		return response, err
+	}
+	selector, err := getSelectorForManagedByLabel()
+	if err != nil {
+		logger.Error("[GetServices] GetSelectorForManagedByLabel error", err)
+		return response, err
+	}
+
+	serviceList, err := c.Services(api.NamespaceDefault).List(api.ListOptions{
+		LabelSelector: selector,
+	})
+	if err != nil {
+		logger.Error("[GetServices] ListServices failed:", err)
+		return response, err
+	}
+	return serviceList.Items, nil
 }
 
 func createServiceInfoList(org, space, domain string, services []api.Service, servicesPublicTags map[string]bool) []K8sServiceInfo {

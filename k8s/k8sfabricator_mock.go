@@ -117,6 +117,17 @@ func (_mr *_MockKubernetesApiRecorder) GetServiceCredentials(arg0, arg1, arg2 in
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetServiceCredentials", arg0, arg1, arg2)
 }
 
+func (_m *MockKubernetesApi) GetServices(creds K8sClusterCredential, org string) ([]api.Service, error) {
+	ret := _m.ctrl.Call(_m, "GetServices", creds, org)
+	ret0, _ := ret[0].([]api.Service)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+func (_mr *_MockKubernetesApiRecorder) GetServices(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetServices", arg0, arg1)
+}
+
 func (_m *MockKubernetesApi) GetQuota(creds K8sClusterCredential, space string) (*api.ResourceQuotaList, error) {
 	ret := _m.ctrl.Call(_m, "GetQuota", creds, space)
 	ret0, _ := ret[0].(*api.ResourceQuotaList)

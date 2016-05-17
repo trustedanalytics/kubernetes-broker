@@ -289,8 +289,7 @@ func TestServiceInstancesDelete(t *testing.T) {
 				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
 				mockKubernetesApi.EXPECT().DeleteAllByServiceId(testCreds, tst.TestSpaceGuid, testId).
 					Return(nil),
-				mockKubernetesApi.EXPECT().GetServicesVisibility(testCreds, tst.TestOrgGuid, tst.TestSpaceGuid).
-					Return([]k8s.K8sServiceInfo{}, nil),
+				mockKubernetesApi.EXPECT().GetServices(testCreds, tst.TestOrgGuid).Return([]api.Service{}, nil),
 				mockKubernetesApi.EXPECT().ListReplicationControllers(testCreds, tst.TestSpaceGuid).
 					Return(&api.ReplicationControllerList{}, nil),
 				mockKubernetesApi.EXPECT().DeleteAllPersistentVolumes(testCreds).Return(nil),
