@@ -101,8 +101,8 @@ Vars like $random1 to $random9 are being filled with a short random text string.
 
 Most of our providers works out-of-box, but few of them requires additional configuration.
 More info can be find on their catalogs:
-* [mongodb-cluster](catalog/mongodb-cluster/README.md)
-* [mySQL-clustered](catalog/mysql56-clustered/README.md)
+* [mongodb-cluster](catalogData/mongodb-cluster/README.md)
+* [mySQL-clustered](catalogData/mysql56-clustered/README.md)
 
 ## Log levels
 
@@ -113,3 +113,7 @@ You can set desired log level by setting system variable `BROKER_LOG_LEVEL_`. Av
 * "NOTICE"
 * "INFO" (default - when variable is not set)
 * "DEBUG"
+
+## Dynamic services
+
+[doc](catalog/README.md)

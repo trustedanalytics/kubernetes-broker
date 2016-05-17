@@ -379,8 +379,8 @@ func (c *Context) ServiceInstancesDelete(rw web.ResponseWriter, req *web.Request
 			return
 		}
 	}
-
-	WriteJson(rw, ServiceInstancesDeleteResponse{}, http.StatusGone)
+	logger.Info("Service DELETED. Id:", service_id)
+	WriteJson(rw, ServiceInstancesDeleteResponse{}, http.StatusOK)
 }
 
 type ServiceBindingsPutRequest struct {
@@ -514,6 +514,37 @@ func (c *Context) CreateAndRegisterDynamicService(rw web.ResponseWriter, req *we
 		// cf enable-service-access your-service-name
 	}
 	WriteJson(rw, "", http.StatusCreated)
+}
+
+func (c *Context) DeleteAndUnRegisterDynamicService(rw web.ResponseWriter, req *web.Request) {
+	req_json := DynamicServiceRequest{}
+
+	err := ReadJson(req, &req_json)
+	if err != nil {
+		Respond500(rw, err)
+		return
+	}
+
+	service, err := catalog.GetServiceByName(req_json.DynamicService.ServiceName)
+	if err != nil {
+		logger.Error("[DeleteAndUnRegisterDynamicService] Delete DynamicService fail!", err)
+		Respond500(rw, err)
+		return
+	}
+
+	catalog.UnregisterOfferingFromCatalog(service)
+
+	//TODO we not persist copy of dynamic services yet, but remember to remove it in the future
+
+	if req_json.UpdateBroker {
+		_, err = cloudProvider.UpdateServiceBroker()
+		if err != nil {
+			Respond500(rw, err)
+			return
+		}
+	}
+	WriteJson(rw, "", http.StatusGone)
+
 }
 
 func (c *Context) CheckPodsStatusForService(rw web.ResponseWriter, req *web.Request) {

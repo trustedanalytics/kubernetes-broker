@@ -30,8 +30,9 @@ bin/gomock: verify_gopath
 	go get -v -u github.com/golang/mock/mockgen
 
 deps_fetch_newest: bin/govendor
+	$(GOBIN)/govendor remove +all
 	@echo "Update deps used in project to their newest versions"
-	$(GOBIN)/govendor fetch -v +external
+	$(GOBIN)/govendor fetch -v +external, +missing
 
 deps_fetch_specific: bin/govendor
 	@if [ "$(DEP_URL)" = "" ]; then\
@@ -46,13 +47,13 @@ deps_fetch_specific: bin/govendor
 deps_update: verify_gopath
 	$(MAKE) bin/govendor
 	@echo "Update all vendor deps according to their current version in GOPATH"
+	$(GOBIN)/govendor remove +all
 	$(GOBIN)/govendor update +external
 	@echo "Done"
 
-deps_list:
-	$(MAKE) bin/govendor
+deps_list: bin/govendor
 	@echo "Project dependencies list:"
-	$(GOBIN)/govendor list +external
+	$(GOBIN)/govendor list
 
 verify_gopath:
 	@if [ -z "$(GOPATH)" ] || [ "$(GOPATH)" = "" ]; then\

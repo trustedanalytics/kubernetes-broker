@@ -89,6 +89,7 @@ func main() {
 	basicAuthRouter.Delete("/service_instances/:instance_id/service_bindings/:binding_id", (*Context).ServiceBindingsDelete)
 
 	basicAuthRouter.Put("/dynamicservice", (*Context).CreateAndRegisterDynamicService)
+	basicAuthRouter.Delete("/dynamicservice", (*Context).DeleteAndUnRegisterDynamicService)
 	basicAuthRouter.Get("/:org_id/service/:instance_id/status", (*Context).CheckPodsStatusForService)
 	basicAuthRouter.Get("/:org_id/services/status", (*Context).CheckPodsStatusForAllServicesInOrg)
 

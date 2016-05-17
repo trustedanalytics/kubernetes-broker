@@ -94,6 +94,15 @@ func CheckIfServiceAlreadyExist(serviceName string) bool {
 	return false
 }
 
+func GetServiceByName(serviceName string) (ServiceMetadata, error) {
+	for _, svc := range GetAvailableServicesMetadata().Services {
+		if svc.Name == serviceName {
+			return svc, nil
+		}
+	}
+	return ServiceMetadata{}, errors.New("service not exist!")
+}
+
 // add mutex... or return a deep copy (prefered).
 var GLOBAL_SERVICES_METADATA *ServicesMetadata
 

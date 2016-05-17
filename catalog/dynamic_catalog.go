@@ -86,6 +86,23 @@ func RegisterOfferingInCatalog(service ServiceMetadata, blueprint KubernetesBlue
 	catalog_mutex.Unlock()
 }
 
+func UnregisterOfferingFromCatalog(service ServiceMetadata) {
+	// TODO no persited version - change it together with RegisterOfferingInCatalog()
+	// first remove from catalog
+	catalog_mutex.Lock()
+
+	for i, svc := range GLOBAL_SERVICES_METADATA.Services {
+		if svc.Name == service.Name {
+			GLOBAL_SERVICES_METADATA.Services = append(GLOBAL_SERVICES_METADATA.Services[:i], GLOBAL_SERVICES_METADATA.Services[i+1:]...)
+			break
+		}
+	}
+
+	// then unregister dynamic blueprint
+	delete(TEMP_DYNAMIC_BLUEPRINTS, service.Id)
+	catalog_mutex.Unlock()
+}
+
 func getDynamicPlanMetadata(dynamicService DynamicService) (PlanMetadata, error) {
 	planId, err := uuid.NewV4()
 	if err != nil {

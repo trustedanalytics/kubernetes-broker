@@ -297,7 +297,7 @@ func TestServiceInstancesDelete(t *testing.T) {
 			)
 
 			rr := sendRequest("DELETE", URLserviceInstancePath+testId, nil, r)
-			assertResponse(rr, "", 410)
+			assertResponse(rr, "", 200)
 		})
 
 		Convey("Should returns error on kubernetes error", func() {

@@ -24,7 +24,7 @@ import (
 
 func (k *K8sCreatorConnector) GetDefaultCluster() K8sClusterCredential {
 	k8sCreatorPostClusterResponse := K8sClusterCredential{}
-	k8sCreatorPostClusterResponse.Server = "http://localhost:" + k.GetLocalPort()
+	k8sCreatorPostClusterResponse.Server = k.GetLocalHost() + ":" + k.GetLocalPort()
 	k8sCreatorPostClusterResponse.CLusterName = "test-doc"
 	k8sCreatorPostClusterResponse.Username = ""
 	return k8sCreatorPostClusterResponse
@@ -58,4 +58,12 @@ func (k *K8sCreatorConnector) GetLocalPort() string {
 		port = "8080"
 	}
 	return port
+}
+
+func (k *K8sCreatorConnector) GetLocalHost() string {
+	host := os.Getenv("K8S_API_HOST")
+	if host == "" {
+		host = "http://localhost"
+	}
+	return host
 }
