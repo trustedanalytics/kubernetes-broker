@@ -332,6 +332,10 @@ func (c *Context) ServiceInstancesDelete(rw web.ResponseWriter, req *web.Request
 
 	status, creds, err := c.CreatorConnector.GetCluster(org)
 	if err != nil {
+		if status != 200 {
+			WriteJson(rw, ServiceInstancesDeleteResponse{}, http.StatusGone)
+			return
+		}
 		Respond500(rw, err)
 		return
 	}
