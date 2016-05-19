@@ -225,6 +225,9 @@ func adjust_params(content, org, space, cf_service_id string, svc_meta_id, plan_
 	proper_dns_name := cf_id_to_domain_valid_name(cf_service_id + "x" + strconv.Itoa(idx))
 	f = strings.Replace(f, "$idx_and_short_serviceid", proper_dns_name, -1)
 
+	proper_short_dns_name := cf_id_to_domain_valid_name(cf_service_id)
+	f = strings.Replace(f, "$short_serviceid", proper_short_dns_name, -1)
+
 	for i := 0; i < 9; i++ {
 		f = strings.Replace(f, "$random"+strconv.Itoa(i), get_random_string(10), -1)
 	}

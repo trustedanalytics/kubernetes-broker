@@ -1,0 +1,33 @@
+{
+  "kind": "Service",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "$short_serviceid",
+    "labels": {
+      "org": "$org",
+      "space": "$space",
+      "catalog_service_id": "$catalog_service_id",
+      "catalog_plan_id": "$catalog_plan_id",
+      "service_id": "$service_id",
+      "managed_by": "TAP"
+    }
+  },
+  "spec": {
+    "type": "NodePort",
+    "selector": {
+      "service_id": "$service_id"
+    },
+    "ports": [
+      {
+        "name": "rest",
+        "protocol": "TCP",
+        "port": 9200
+      },
+      {
+        "name": "transport",
+        "protocol": "TCP",
+        "port": 9300
+      }
+    ]
+  }
+}

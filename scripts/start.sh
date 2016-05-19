@@ -1,5 +1,4 @@
-export K8S_API_PORT=8080
-export K8S_API_HOST=http://localhost
+export K8S_API_ADDRESS=http://localhost:8080
 export VCAP_APPLICATION='{"port":8081, "host":"0.0.0.0"}'
 
 export AUTH_USER="admin"

@@ -1,0 +1,6 @@
+{
+  "id": "ed80d0ff-cc28-4617-baf0-66959c5cc0aa",
+  "name": "clustered-simple",
+  "description": "Basic Multi-node Elasticsearch stack",
+  "free": true
+}

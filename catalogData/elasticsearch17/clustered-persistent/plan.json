@@ -1,0 +1,6 @@
+{
+  "id": "aff55582-ff51-41f5-b6fa-e964016f6e99",
+  "name": "clustered-persistent",
+  "description": "Persistent Multi-node Elasticsearch stack",
+  "free": true
+}

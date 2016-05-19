@@ -11,7 +11,7 @@ source scripts/cf-config.sh
 cf create-service-broker $BROKER $AUTH_USER $AUTH_PASS https://$BROKER.$DOMAIN
 cf update-service-broker $BROKER $AUTH_USER $AUTH_PASS https://$BROKER.$DOMAIN
 
-cf enable-service-access elk-multinode
+cf enable-service-access elasticsearch17-multinode
 cf enable-service-access mongodb-clustered
 cf enable-service-access mysql56-clustered
 cf enable-service-access postgresql94-clustered

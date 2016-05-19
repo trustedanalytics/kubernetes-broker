@@ -1,0 +1,146 @@
+{
+  "kind": "ReplicationController",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "$idx_and_short_serviceid-node1",
+    "labels": {
+      "org": "$org",
+      "space": "$space",
+      "catalog_service_id": "$catalog_service_id",
+      "catalog_plan_id": "$catalog_plan_id",
+      "service_id": "$service_id",
+      "idx_and_short_serviceid": "$idx_and_short_serviceid-node1",
+      "managed_by": "TAP",
+      "instance": "node1"
+    }
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "service_id": "$service_id",
+      "idx_and_short_serviceid": "$idx_and_short_serviceid-node1"
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "service_id": "$service_id",
+          "idx_and_short_serviceid": "$idx_and_short_serviceid-node1",
+          "managed_by": "TAP",
+          "instance": "node1"
+        }
+      },
+      "spec": {
+        "serviceAccountName": "$short_serviceid",
+        "volumes": [
+          {
+            "name": "es-secret-volume",
+            "secret": {
+              "secretName": "$short_serviceid-es-secret-keyfile"
+            }
+          },
+          {
+            "name": "es-node1-persistent-storage",
+            "persistentVolumeClaim": {
+              "claimName": "$idx_and_short_serviceid-node1"
+            }
+          }
+        ],
+        "containers": [
+          {
+            "name": "k-elasticsearch17-clustered",
+            "image": "quay.io/pires/docker-elasticsearch-kubernetes:1.7.1-4",
+            "resources": {
+              "limits": {
+                "memory": "500M"
+              },
+              "requests": {
+                "memory": "100M"
+              }
+            },
+            "livenessProbe": {
+              "exec": {
+                "command": [ "/bin/sh", "-c", "/usr/bin/wget http://localhost:9200/_cluster/health?pretty -q -O - | /bin/grep cluster_name" ]
+              },
+              "initialDelaySeconds": 60,
+              "timeoutSeconds": 15,
+              "periodSeconds": 60,
+              "successThreshold": 1,
+              "failureThreshold": 4
+
+            },
+            "ports": [
+              {
+                "containerPort": 9200,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 9300,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              { "name": "MANAGED_BY", "value":"TAP" },
+
+              { "name": "KUBERNETES_CA_CERTIFICATE_FILE",   "value": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt" },
+              { "name": "NAMESPACE", "valueFrom": { "fieldRef": { "apiVersion": "v1", "fieldPath": "metadata.namespace" } } },
+              { "name": "DISCOVERY_SERVICE",   "value": "$short_serviceid" },
+              { "name": "NODE_MASTER",   "value": "true" },
+              { "name": "NODE_DATA",   "value": "true" },
+
+              {
+                "name": "CLUSTER_NAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-es-secret-keyfile",
+                    "key": "claster-name"
+                  }
+                }
+              },
+              {
+                "name": "USERNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-es-secret-keyfile",
+                    "key": "db-user"
+                  }
+                }
+              },
+              {
+                "name": "PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-es-secret-keyfile",
+                    "key": "db-pass"
+                  }
+                }
+              },
+              {
+                "name": "DBNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-es-secret-keyfile",
+                    "key": "db-name"
+                  }
+                }
+              }
+            ],
+            "volumeMounts": [
+              {
+                "name": "es-secret-volume",
+                "readOnly": false,
+                "mountPath": "/etc/mongo-secret-volume"
+              },
+              {
+                "name": "es-node1-persistent-storage",
+                "mountPath": "/var/lib/elasticsearch"
+              }
+            ],
+            "imagePullPolicy": "IfNotPresent"
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
+      }
+    }
+  }
+}
