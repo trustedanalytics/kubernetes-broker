@@ -3,7 +3,7 @@ APP_DIR_LIST=$(shell go list ./... | grep -v /vendor/)
 PROJECT_VERSION=`grep VERSION: manifest.yml | cut -d ":" -f 2 | tr -d "\" "`
 COMMIT_COUNT=`git rev-list --count origin/master`
 COMMIT_SHA=`git rev-parse HEAD`
-VERSION=$(PROJECT_VERSION)-$(COMMIT_COUNT)
+VERSION=$(PROJECT_VERSION)
 all: build
 
 build: bin/app
@@ -99,8 +99,8 @@ pack: build
 
 pack_anywhere:
 	test -d "application" || mkdir application
-	mkdir -p temp/src/github.com/trustedanalytics
-	$(eval GOPATH=$(shell cd temp; pwd))
+	mkdir -p ./temp/src/github.com/trustedanalytics
+	$(eval GOPATH=$(shell cd ./temp; pwd))
 	$(eval PROJECT_NAME=$(shell basename `pwd`))
 	ln -sf `pwd` temp/src/github.com/trustedanalytics/$(PROJECT_NAME)
 	$(eval LOCAL_APP_DIR_LIST=$(shell cd temp/src/github.com/trustedanalytics/kubernetes-broker; GOPATH=$(GOPATH) go list ./... | grep -v /vendor/))
@@ -108,7 +108,7 @@ pack_anywhere:
 	cp -Rf $(GOPATH)/bin/kubernetes-broker application
 	echo "commit_sha=$(COMMIT_SHA)" > build_info.ini
 	zip -r -q kubernetes-broker-${VERSION}.zip application catalogData template manifest.yml build_info.ini
-	rm -Rf temp
+	rm -Rf ./temp
 
 .PHONY: bin/app clean save get run update logs logf push clean
 	
