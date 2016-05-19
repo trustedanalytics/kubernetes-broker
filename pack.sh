@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-make pack
+make pack_anywhere
