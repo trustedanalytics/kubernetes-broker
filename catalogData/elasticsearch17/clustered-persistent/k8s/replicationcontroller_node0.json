@@ -128,7 +128,7 @@
               {
                 "name": "es-secret-volume",
                 "readOnly": false,
-                "mountPath": "/etc/mongo-secret-volume"
+                "mountPath": "/etc/es-secret-volume"
               },
               {
                 "name": "es-node0-persistent-storage",
