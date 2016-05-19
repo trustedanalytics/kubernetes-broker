@@ -532,7 +532,7 @@ func (c *Context) DeleteAndUnRegisterDynamicService(rw web.ResponseWriter, req *
 	service, err := catalog.GetServiceByName(req_json.DynamicService.ServiceName)
 	if err != nil {
 		logger.Error("[DeleteAndUnRegisterDynamicService] Delete DynamicService fail!", err)
-		Respond500(rw, err)
+		WriteJson(rw, "", http.StatusGone)
 		return
 	}
 
@@ -547,7 +547,7 @@ func (c *Context) DeleteAndUnRegisterDynamicService(rw web.ResponseWriter, req *
 			return
 		}
 	}
-	WriteJson(rw, "", http.StatusGone)
+	WriteJson(rw, "", http.StatusNoContent)
 
 }
 

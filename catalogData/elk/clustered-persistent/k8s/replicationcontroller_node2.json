@@ -2,37 +2,52 @@
   "kind": "ReplicationController",
   "apiVersion": "v1",
   "metadata": {
-    "name": "$idx_and_short_serviceid-node1",
+    "name": "$idx_and_short_serviceid-node2",
     "labels": {
       "org": "$org",
       "space": "$space",
       "catalog_service_id": "$catalog_service_id",
       "catalog_plan_id": "$catalog_plan_id",
       "service_id": "$service_id",
-      "idx_and_short_serviceid": "$idx_and_short_serviceid-node1",
+      "idx_and_short_serviceid": "$idx_and_short_serviceid-node2",
       "managed_by": "TAP",
-      "instance": "node1"
+      "instance": "node2"
     }
   },
   "spec": {
     "replicas": 1,
     "selector": {
       "service_id": "$service_id",
-      "idx_and_short_serviceid": "$idx_and_short_serviceid-node1"
+      "idx_and_short_serviceid": "$idx_and_short_serviceid-node2"
     },
     "template": {
       "metadata": {
         "labels": {
           "service_id": "$service_id",
-          "idx_and_short_serviceid": "$idx_and_short_serviceid-node1",
+          "idx_and_short_serviceid": "$idx_and_short_serviceid-node2",
           "managed_by": "TAP",
-          "instance": "node1"
+          "instance": "node2"
         }
       },
       "spec": {
+        "serviceAccountName": "$short_serviceid",
+        "volumes": [
+          {
+            "name": "elk-secret-volume",
+            "secret": {
+              "secretName": "$short_serviceid-elk-secret-keyfile"
+            }
+          },
+          {
+            "name": "elk-node2-persistent-storage",
+            "persistentVolumeClaim": {
+              "claimName": "$idx_and_short_serviceid-node2"
+            }
+          }
+        ],
         "containers": [
           {
-            "name": "k-elasticsearch13-clustered",
+            "name": "elk-node2-clustered",
             "image": "quay.io/pires/docker-elasticsearch-kubernetes:1.7.1-4",
             "resources": {
               "limits": {
@@ -68,15 +83,16 @@
 
               { "name": "KUBERNETES_CA_CERTIFICATE_FILE",   "value": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt" },
               { "name": "NAMESPACE", "valueFrom": { "fieldRef": { "apiVersion": "v1", "fieldPath": "metadata.namespace" } } },
-              { "name": "DISCOVERY_SERVICE",   "value": "$idx_and_short_serviceid" },
+              { "name": "DISCOVERY_SERVICE",   "value": "$short_serviceid" },
               { "name": "NODE_MASTER",   "value": "true" },
               { "name": "NODE_DATA",   "value": "true" },
+
               {
                 "name": "CLUSTER_NAME",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-elk-credentials",
-                    "key": "cluser-name"
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "claster-name"
                   }
                 }
               },
@@ -84,7 +100,7 @@
                 "name": "USERNAME",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-elk-credentials",
+                    "name": "$short_serviceid-elk-secret-keyfile",
                     "key": "db-user"
                   }
                 }
@@ -93,7 +109,7 @@
                 "name": "PASSWORD",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-elk-credentials",
+                    "name": "$short_serviceid-elk-secret-keyfile",
                     "key": "db-pass"
                   }
                 }
@@ -102,7 +118,7 @@
                 "name": "DBNAME",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-elk-credentials",
+                    "name": "$short_serviceid-elk-secret-keyfile",
                     "key": "db-name"
                   }
                 }
@@ -110,7 +126,12 @@
             ],
             "volumeMounts": [
               {
-                "name": "elasticsearch13-persistent-storage-node1",
+                "name": "elk-secret-volume",
+                "readOnly": false,
+                "mountPath": "/etc/elk-secret-volume"
+              },
+              {
+                "name": "elk-node2-persistent-storage",
                 "mountPath": "/var/lib/elasticsearch"
               }
             ],
@@ -123,21 +144,11 @@
               "exec": {
                 "command": [ "/bin/sh", "-c", "/usr/bin/curl http://localhost:5601/ | /bin/grep window.KIBANA_VERSION" ]
               },
-              "initialDelaySeconds": 180,
+              "initialDelaySeconds": 300,
               "timeoutSeconds": 15,
-              "periodSeconds": 60,
+              "periodSeconds": 600,
               "successThreshold": 1,
-              "failureThreshold": 4
-            },
-            "readinessProbe": {
-              "exec": {
-                "command": [ "/bin/sh", "-c", "/usr/bin/curl http://localhost:5601/ | /bin/grep window.KIBANA_VERSION" ]
-              },
-              "initialDelaySeconds": 60,
-              "timeoutSeconds": 15,
-              "periodSeconds": 60,
-              "successThreshold": 1,
-              "failureThreshold": 4
+              "failureThreshold": 10
             },
             "ports": [
               {
@@ -152,27 +163,20 @@
                 "name": "DBNAME",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-elk-credentials",
+                    "name": "$short_serviceid-elk-secret-keyfile",
                     "key": "db-name"
                   }
                 }
               }
             ],
+            "volumeMounts": [
+              {
+                "name": "elk-secret-volume",
+                "readOnly": false,
+                "mountPath": "/etc/elk-secret-volume"
+              }
+            ],
             "imagePullPolicy": "IfNotPresent"
-          }
-        ],
-        "volumes": [
-          {
-            "name": "elasticsearch13-persistent-storage-node1",
-            "persistentVolumeClaim": {
-              "claimName": "$idx_and_short_serviceid-node1"
-            }
-          },
-          {
-            "name": "elk-credentials",
-            "secret": {
-              "secretName": "$idx_and_short_serviceid-elk-credentials"
-            }
           }
         ],
         "restartPolicy": "Always",

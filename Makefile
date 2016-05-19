@@ -79,13 +79,13 @@ update:
 	./scripts/cf-updatesvc.sh
 
 mock_update: bin/gomock
-	$(GOBIN)/mockgen -source=cfapi.go -package=main -destination=cfapi_mock_test.go
+	$(GOBIN)/mockgen -source=cfapi.go -package=main -destination=cfapi_mock.go
 	$(GOBIN)/mockgen -source=k8s/k8sfabricator.go -package=k8s -destination=k8s/k8sfabricator_mock.go
 	$(GOBIN)/mockgen -source=k8s/k8screator_rest_api.go -package=k8s -destination=k8s/k8screator_rest_api_mock.go
 	$(GOBIN)/mockgen -source=state/state.go -package=state -destination=state/state_mock.go
 	$(GOBIN)/mockgen -source=consul/consul_service.go -package=consul -destination=consul/consul_service_mock.go
 
-tests: verify_gopath
+tests: verify_gopath mock_update
 	go test --cover $(APP_DIR_LIST)
 
 kate:

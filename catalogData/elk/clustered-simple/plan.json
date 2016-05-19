@@ -1,0 +1,6 @@
+{
+  "id": "e3d4d5a4-657a-4be7-b86d-4d2c36c1c974",
+  "name": "clustered",
+  "description": "Basic Multi-node ELK stack",
+  "free": true
+}
