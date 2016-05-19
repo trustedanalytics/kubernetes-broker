@@ -97,12 +97,30 @@ Typical core labels are:
 
 Vars like $random1 to $random9 are being filled with a short random text string.
 
-## Implemented Providers
+## Implemented Providers and clustered services
 
 Most of our providers works out-of-box, but few of them requires additional configuration.
+Some clustered services needs access to private or public image repository where builded images can be found.
+
+[Images] (custom_images) can be build using simple docker command
+ 
+ ```
+ docker build -t mysql56-cluster .
+ ```
+
+One has to build provided [custom images](custom_images) and provide to broker informations how to connect to repository:
+
+
+- KUBE_REPO_USER: user to authenticate
+- KUBE_REPO_PASS: password for user
+- KUBE_REPO_URL: url to repository where docker images were published
+- KUBE_REPO_MAIL: user email
+
+ 
 More info can be find on their catalogs:
 * [mongodb-cluster](catalogData/mongodb-cluster/README.md)
 * [mySQL-clustered](catalogData/mysql56-clustered/README.md)
+* [PostgreSQL-clustered](catalogData/postgresql94-clustered/README.md)
 
 ## Log levels
 
@@ -116,4 +134,6 @@ You can set desired log level by setting system variable `BROKER_LOG_LEVEL_`. Av
 
 ## Dynamic services
 
-[doc](catalog/README.md)
+One can use own image to provide new service offering in catalog. For now there is no persistence for dynamic offering
+(all information are in memory of broker till it restarts). More information how to add such offerings can be found
+[here](catalog/README.md)
