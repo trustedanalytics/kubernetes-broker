@@ -53,8 +53,22 @@
             ],
             "env": [
               { "name": "MANAGED_BY", "value":"TAP" },
-              { "name": "NATS_PASSWORD",   "value": "$random1" },
-              { "name": "NATS_USERNAME",   "value": "$random2" }
+              { "name": "NATS_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-nats-credentials",
+                    "key": "nats-password"
+                  }
+                }
+              },
+              { "name": "NATS_USERNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-nats-credentials",
+                    "key": "nats-username"
+                  }
+                }
+              }
             ],
             "imagePullPolicy": "IfNotPresent"
           }

@@ -48,9 +48,23 @@
               }
             ],
             "env": [
-              { "name": "MANAGED_BY", "value":"TAP" },
-              { "name": "INFLUXDB_PASSWORD",   "value": "root" },
-              { "name": "INFLUXDB_USERNAME",   "value": "root" }
+              { "name": "INFLUXDB_USERNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-influxdb-credentials",
+                    "key": "influxdb-username"
+                  }
+                }
+              },
+              { "name": "INFLUXDB_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-influxdb-credentials",
+                    "key": "influxdb-password"
+                  }
+                }
+              },
+              { "name": "MANAGED_BY", "value":"TAP" }
             ],
             "imagePullPolicy": "IfNotPresent"
           }

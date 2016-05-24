@@ -28,7 +28,6 @@
         }
       },
       "spec": {
-        "volumes": null,
         "containers": [
           {
             "name": "k-mongodb30",
@@ -51,10 +50,31 @@
               }
             ],
             "env": [
-              { "name": "MANAGED_BY", "value":"TAP" },
-              { "name": "MONGODB_PASSWORD",   "value": "$random1" },
-              { "name": "MONGODB_USERNAME",   "value": "$random2" },
-              { "name": "MONGODB_DBNAME",   "value": "$random3" }
+              { "name": "MONGODB_USERNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mongodb26-secret-keyfile",
+                    "key": "mongodb-username"
+                  }
+                }
+              },
+              { "name": "MONGODB_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mongodb26-secret-keyfile",
+                    "key": "mongodb-password"
+                  }
+                }
+              },
+              { "name": "MONGODB_DBNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mongodb26-secret-keyfile",
+                    "key": "mongodb-dbname"
+                  }
+                }
+              },
+              { "name": "MANAGED_BY", "value":"TAP" }
             ],
             "imagePullPolicy": "IfNotPresent"
           }

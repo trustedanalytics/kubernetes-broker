@@ -32,7 +32,7 @@
           {
             "name": "postgresql-credentials",
             "secret": {
-              "secretName": "$idx_and_short_serviceid-postgresql-credentials"
+              "secretName": "$short_serviceid-postgresql-clustered-credentials"
             }
           }
         ],
@@ -55,12 +55,20 @@
               }
             ],
             "env": [
-              { "name": "REPLICATION_USER", "value": "postgres"},
+              {
+                "name": "REPLICATION_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "pg-replication-user"
+                  }
+                }
+              },
               {
                 "name": "REPLICATION_PASS",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-postgresql-credentials",
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
                     "key": "pg-password"
                   }
                 }
@@ -69,8 +77,8 @@
                 "name": "DB_USER",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-postgresql-credentials",
-                    "key": "db-pass"
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "db-user"
                   }
                 }
               },
@@ -78,8 +86,8 @@
                 "name": "DB_PASS",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-postgresql-credentials",
-                    "key": "db-user"
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "db-pass"
                   }
                 }
               },
@@ -87,15 +95,47 @@
                 "name": "DB_NAME",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-postgresql-credentials",
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
                     "key": "db-name"
                   }
                 }
               },
-              { "name": "PG_DATA_HOME", "value": "/var/lib/postgresql/9.4/main"},
-              { "name": "MASTER_HOST_NAME", "value": "$idx_and_short_serviceid_MASTER_SERVICE_HOST"},
-              { "name": "SLAVE_1_HOST_NAME", "value": "$idx_and_short_serviceid_SLAVE_1_SERVICE_HOST"},
-              { "name": "SLAVE_2_HOST_NAME", "value": "$idx_and_short_serviceid_SLAVE_2_SERVICE_HOST"},
+              {
+                "name": "PG_DATA_HOME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "pg-data-home"
+                  }
+                }
+              },
+              {
+                "name": "MASTER_HOST_NAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "master-host-name"
+                  }
+                }
+              },
+              {
+                "name": "SLAVE_1_HOST_NAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "slave-1-host-name"
+                  }
+                }
+              },
+              {
+                "name": "SLAVE_2_HOST_NAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "slave-2-host-name"
+                  }
+                }
+              },
               { "name": "MANAGED_BY", "value":"TAP" }
             ],
             "imagePullPolicy": "IfNotPresent"

@@ -41,7 +41,14 @@
             ],
             "env": [
               { "name": "MANAGED_BY", "value":"TAP" },
-              { "name": "PASSWORD",   "value": "$random1" }
+              { "name": "PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-ipython-credentials",
+                    "key": "password"
+                  }
+                }
+              }
             ],
             "imagePullPolicy": "IfNotPresent"
           }

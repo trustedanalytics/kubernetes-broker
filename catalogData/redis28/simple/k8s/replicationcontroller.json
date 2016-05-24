@@ -49,7 +49,14 @@
             ],
             "env": [
               { "name": "MANAGED_BY", "value":"TAP" },
-              { "name": "REDIS_PASSWORD",   "value": "$random1" }
+              { "name": "REDIS_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-redis-credentials",
+                    "key": "redis-password"
+                  }
+                }
+              }
             ],
             "imagePullPolicy": "IfNotPresent"
           }

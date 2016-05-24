@@ -34,7 +34,7 @@
           {
             "name": "mongo-secret-volume",
             "secret": {
-              "secretName": "$idx_and_short_serviceid-mongo-secret-keyfile"
+              "secretName": "$short_serviceid-mongodb30-clustered-secret-keyfile"
             }
           }
         ],

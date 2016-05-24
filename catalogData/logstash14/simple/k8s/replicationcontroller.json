@@ -52,9 +52,23 @@
               }
             ],
             "env": [
-              { "name": "MANAGED_BY", "value":"TAP" },
-              { "name": "RABBITMQ_PASSWORD",   "value": "$random1" },
-              { "name": "RABBITMQ_USERNAME",   "value": "$random2" }
+              { "name": "RABBITMQ_USERNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-logstash-credentials",
+                    "key": "rabbitmq-username"
+                  }
+                }
+              },
+              { "name": "RABBITMQ_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-logstash-credentials",
+                    "key": "rabbitmq-password"
+                  }
+                }
+              },
+              { "name": "MANAGED_BY", "value":"TAP" }
             ],
             "imagePullPolicy": "IfNotPresent"
           }

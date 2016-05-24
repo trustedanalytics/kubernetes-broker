@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -150,6 +151,7 @@ func CreateKubernetesComponentFromBlueprint(blueprint KubernetesBlueprint) (*Kub
 func GetKubernetesBlueprintByServiceAndPlan(catalogPath string, svcMeta ServiceMetadata, planMeta PlanMetadata) (KubernetesBlueprint, error) {
 	result := KubernetesBlueprint{}
 	var err error
+	var secretTemplatesExists bool
 
 	//todo replace it by psotgres!
 	// first check in registred dynamic templates:
@@ -159,6 +161,7 @@ func GetKubernetesBlueprintByServiceAndPlan(catalogPath string, svcMeta ServiceM
 
 	svc_path := catalogPath + svcMeta.InternalId + "/"
 	plan_path := svc_path + planMeta.InternalId + "/"
+	secrets_path := svc_path + "secretTemplates/"
 	k8s_plan_path := plan_path + "k8s/"
 
 	result.PersistentVolumeClaim, err = read_k8s_files_with_prefix_from_dir(k8s_plan_path, "persistentvolumeclaim")
@@ -171,6 +174,25 @@ func GetKubernetesBlueprintByServiceAndPlan(catalogPath string, svcMeta ServiceM
 	if err != nil {
 		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading secret files", err)
 		return result, err
+	}
+
+	//if secret.jsons are not present k8s_plan_path, check if secretTemplates dir exists and read secret.jsons
+	//from there
+	if len(result.SecretsJson) == 0 {
+		secretTemplatesExists, err = check_if_file_or_dir_exists(secrets_path)
+		if err != nil {
+			logger.Error("Error checking if secretTemplates exists!", err)
+			return result, err
+		}
+
+		if secretTemplatesExists {
+			result.SecretsJson, err = read_k8s_files_with_prefix_from_dir(secrets_path, "secret")
+			if err != nil {
+				logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading secret files " +
+					"from secretTemplates path", err)
+				return result, err
+			}
+		}
 	}
 
 	result.ReplicationControllerJson, err = read_k8s_files_with_prefix_from_dir(k8s_plan_path, "replicationcontroller")
@@ -279,4 +301,16 @@ func read_k8s_files_with_prefix_from_dir(path, prefix string) ([]string, error) 
 		}
 	}
 	return results, nil
+}
+
+func check_if_file_or_dir_exists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		} else {
+			return false, err
+		}
+	}
+	return true, nil
 }

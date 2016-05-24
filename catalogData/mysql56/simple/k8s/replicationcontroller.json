@@ -41,9 +41,30 @@
             ],
             "env": [
               { "name": "MANAGED_BY", "value":"TAP" },
-              { "name": "MYSQL_PASSWORD",   "value": "$random1" },
-              { "name": "MYSQL_USERNAME",   "value": "$random2" },
-              { "name": "MYSQL_DBNAME",   "value": "$random3" }
+              { "name": "MYSQL_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mysql-credentials",
+                    "key": "mysql-password"
+                  }
+                }
+              },
+              { "name": "MYSQL_USERNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mysql-credentials",
+                    "key": "mysql-username"
+                  }
+                }
+              },
+              { "name": "MYSQL_DBNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mysql-credentials",
+                    "key": "mysql-dbname"
+                  }
+                }
+              }
             ],
             "imagePullPolicy": "IfNotPresent"
           }

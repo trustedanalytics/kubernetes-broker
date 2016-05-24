@@ -48,9 +48,23 @@
               }
             ],
             "env": [
-              { "name": "MANAGED_BY", "value":"TAP" },
-              { "name": "MEMCACHED_PASSWORD",   "value": "$random1" },
-              { "name": "MEMCACHED_USERNAME",   "value": "$random2" }
+              { "name": "MEMCACHED_USERNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-memcached-credentials",
+                    "key": "memcached-username"
+                  }
+                }
+              },
+              { "name": "MEMCACHED_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-memcached-credentials",
+                    "key": "memcached-password"
+                  }
+                }
+              },
+              { "name": "MANAGED_BY", "value":"TAP" }
             ],
             "imagePullPolicy": "IfNotPresent"
           }

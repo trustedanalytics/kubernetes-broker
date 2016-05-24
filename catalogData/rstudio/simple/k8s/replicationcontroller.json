@@ -49,8 +49,22 @@
             ],
             "env": [
               { "name": "MANAGED_BY", "value":"TAP" },
-              { "name": "PASSWORD",   "value": "$random1" },
-              { "name": "USER",   "value": "$random2" }
+              { "name": "PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-rstudio-credentials",
+                    "key": "password"
+                  }
+                }
+              },
+              { "name": "USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-rstudio-credentials",
+                    "key": "user"
+                  }
+                }
+              }
             ],
             "imagePullPolicy": "IfNotPresent"
           }

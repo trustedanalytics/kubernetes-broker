@@ -49,10 +49,30 @@
             ],
             "env": [
 	      { "name": "MANAGED_BY", "value":"TAP" },
-	      { "name": "USERNAME",   "value": "$random1" },
-	      { "name": "PASSWORD",   "value": "$random2" },
-	      { "name": "DBNAME",     "value": "$random3" },
-          { "name": "DBNAME",     "value": "$random3" }
+	      { "name": "USERNAME",
+            "valueFrom": {
+              "secretKeyRef": {
+                "name": "$short_serviceid-nginx-credentials",
+                "key": "username"
+              }
+            }
+          },
+	      { "name": "PASSWORD",
+            "valueFrom": {
+              "secretKeyRef": {
+                "name": "$short_serviceid-nginx-credentials",
+                "key": "password"
+              }
+            }
+          },
+	      { "name": "DBNAME",
+            "valueFrom": {
+              "secretKeyRef": {
+                "name": "$short_serviceid-nginx-credentials",
+                "key": "dbname"
+              }
+            }
+          }
 	    ],
             "imagePullPolicy": "IfNotPresent"
           }

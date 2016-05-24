@@ -34,7 +34,7 @@
           {
             "name": "mongo-secret-volume",
             "secret": {
-              "secretName": "$idx_and_short_serviceid-mongo-secret-keyfile"
+              "secretName": "$short_serviceid-mongodb30-clustered-secret-keyfile"
             }
           },
           {
@@ -58,11 +58,46 @@
             ],
             "env": [
               { "name": "MANAGED_BY", "value":"TAP" },
-              { "name": "MONGODB_PASSWORD",   "value": "$random1" },
-              { "name": "MONGODB_USERNAME",   "value": "$random2" },
-              { "name": "MONGODB_DBNAME",   "value": "admin" },
-              { "name": "MONGODB_REPLICA_NAME",   "value": "replica" },
-              { "name": "MONGODB_ROLE",   "value": "root" }
+              { "name": "MONGODB_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mongodb30-clustered-secret-keyfile",
+                    "key": "mongodb-password"
+                  }
+                }
+              },
+              { "name": "MONGODB_USERNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mongodb30-clustered-secret-keyfile",
+                    "key": "mongodb-username"
+                  }
+                }
+              },
+              { "name": "MONGODB_DBNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mongodb30-clustered-secret-keyfile",
+                    "key": "mongodb-dbname"
+                  }
+                }
+              },
+              { "name": "MONGODB_REPLICA_NAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mongodb30-clustered-secret-keyfile",
+                    "key": "mongodb-replica-name"
+                  }
+                }
+              },
+              { "name": "MONGODB_ROLE",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mongodb30-clustered-secret-keyfile",
+                    "key": "mongodb-role"
+                  }
+                }
+              }
             ],
             "volumeMounts": [
               {

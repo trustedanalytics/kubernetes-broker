@@ -32,7 +32,7 @@
           {
             "name": "postgresql-credentials",
             "secret": {
-              "secretName": "$idx_and_short_serviceid-postgresql-credentials"
+              "secretName": "$short_serviceid-postgresql-clustered-credentials"
             }
           },
           {
@@ -65,8 +65,8 @@
                 "name": "DB_USER",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-postgresql-credentials",
-                    "key": "db-pass"
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "db-user"
                   }
                 }
               },
@@ -74,8 +74,8 @@
                 "name": "DB_PASS",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-postgresql-credentials",
-                    "key": "db-user"
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "db-pass"
                   }
                 }
               },
@@ -83,7 +83,7 @@
                 "name": "DB_NAME",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-postgresql-credentials",
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
                     "key": "db-name"
                   }
                 }
@@ -92,7 +92,7 @@
                 "name": "REPLICATION_USER",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-postgresql-credentials",
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
                     "key": "replication-user"
                   }
                 }
@@ -101,7 +101,7 @@
                 "name": "REPLICATION_PASS",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-postgresql-credentials",
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
                     "key": "replication-pass"
                   }
                 }
@@ -110,7 +110,7 @@
                 "name": "PG_PASSWORD",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-postgresql-credentials",
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
                     "key": "pg-password"
                   }
                 }

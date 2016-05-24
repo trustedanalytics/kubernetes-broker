@@ -35,7 +35,7 @@ func InitLogger(module string) *logging.Logger {
 
 	logger := logging.MustGetLogger(module)
 	format := logging.MustStringFormatter(
-		`%{color}%{time:15:04:05.000} %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,
+		`%{color}%{time:15:04:05.000} %{level:.4s} ▶ [%{shortfunc}]: %{color:reset} %{message}`,
 	)
 
 	backend1 := logging.NewLogBackend(os.Stderr, "", 0)

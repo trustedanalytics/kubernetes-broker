@@ -53,8 +53,22 @@
             ],
             "env": [
               { "name": "MANAGED_BY", "value":"TAP" },
-              { "name": "RABBITMQ_PASSWORD",   "value": "$random1" },
-              { "name": "RABBITMQ_USERNAME",   "value": "$random2" }
+              { "name": "RABBITMQ_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-rabbitmq-credentials",
+                    "key": "rabbitmq-password"
+                  }
+                }
+              },
+              { "name": "RABBITMQ_USERNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-rabbitmq-credentials",
+                    "key": "rabbitmq-username"
+                  }
+                }
+              }
             ],
             "imagePullPolicy": "IfNotPresent"
           }

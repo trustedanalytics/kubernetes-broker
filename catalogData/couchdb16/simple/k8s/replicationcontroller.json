@@ -41,9 +41,30 @@
             ],
             "env": [
               { "name": "MANAGED_BY", "value":"TAP" },
-              { "name": "COUCHDB_PASSWORD",   "value": "$random1" },
-              { "name": "COUCHDB_USERNAME",   "value": "$random2" },
-              { "name": "COUCHDB_DBNAME",   "value": "$random3" }
+              { "name": "COUCHDB_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-couchdb-credentials",
+                    "key": "couchdb-password"
+                  }
+                }
+              },
+              { "name": "COUCHDB_USERNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-couchdb-credentials",
+                    "key": "couchdb-username"
+                  }
+                }
+              },
+              { "name": "COUCHDB_DBNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-couchdb-credentials",
+                    "key": "couchdb-dbname"
+                  }
+                }
+              }
             ],
             "imagePullPolicy": "IfNotPresent"
           }

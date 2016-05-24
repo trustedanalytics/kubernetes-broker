@@ -38,7 +38,7 @@
           {
             "name": "mysql-credentials",
             "secret": {
-              "secretName": "$idx_and_short_serviceid-mysql-credentials"
+              "secretName": "$short_serviceid-mysql-clustered-credentials"
             }
           },
           {
@@ -76,7 +76,7 @@
                 "name": "MYSQL_PASSWORD",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-mysql-credentials",
+                    "name": "$short_serviceid-mysql-clustered-credentials",
                     "key": "mysql-password"
                   }
                 }
@@ -85,7 +85,7 @@
                 "name": "MYSQL_USER",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-mysql-credentials",
+                    "name": "$short_serviceid-mysql-clustered-credentials",
                     "key": "mysql-user"
                   }
                 }
@@ -94,7 +94,7 @@
                 "name": "MYSQL_DATABASE",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-mysql-credentials",
+                    "name": "$short_serviceid-mysql-clustered-credentials",
                     "key": "mysql-database"
                   }
                 }
@@ -103,7 +103,7 @@
                 "name": "WSREP_SST_USER",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-mysql-credentials",
+                    "name": "$short_serviceid-mysql-clustered-credentials",
                     "key": "wsrep-sst-user"
                   }
                 }
@@ -112,7 +112,7 @@
                 "name": "WSREP_SST_PASSWORD",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-mysql-credentials",
+                    "name": "$short_serviceid-mysql-clustered-credentials",
                     "key": "wsrep-sst-password"
                   }
                 }
@@ -121,15 +121,43 @@
                 "name": "MYSQL_ROOT_PASSWORD",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-mysql-credentials",
+                    "name": "$short_serviceid-mysql-clustered-credentials",
                     "key": "mysql-root-password"
                   }
                 }
               },
-              { "name": "GALERA_CLUSTER", "value":"true" },
-              { "name": "WSREP_CLUSTER_ADDRESS",   "value": " gcomm://" },
-              { "name": "SERVICE_LABEL",   "value": "$idx_and_short_serviceid" },
-              { "name": "USE_IP",   "value": "true" }
+              { "name": "GALERA_CLUSTER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mysql-clustered-credentials",
+                    "key": "galera-cluster"
+                  }
+                }
+              },
+              { "name": "WSREP_CLUSTER_ADDRESS",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mysql-clustered-credentials",
+                    "key": "wsrep-cluster-address"
+                  }
+                }
+              },
+              { "name": "SERVICE_LABEL",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mysql-clustered-credentials",
+                    "key": "service-label"
+                  }
+                }
+              },
+              { "name": "USE_IP",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mysql-clustered-credentials",
+                    "key": "use-ip"
+                  }
+                }
+              }
             ],
             "volumeMounts": [
               {

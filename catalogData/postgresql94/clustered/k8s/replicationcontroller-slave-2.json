@@ -32,7 +32,7 @@
           {
             "name": "postgresql-credentials",
             "secret": {
-              "secretName": "$idx_and_short_serviceid-postgresql-credentials"
+              "secretName": "$short_serviceid-postgresql-clustered-credentials"
             }
           }
         ],
@@ -54,7 +54,7 @@
                 "name": "REPLICATION_USER",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-postgresql-credentials",
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
                     "key": "replication-user"
                   }
                 }
@@ -63,7 +63,7 @@
                 "name": "REPLICATION_PASS",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-postgresql-credentials",
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
                     "key": "replication-pass"
                   }
                 }
@@ -72,8 +72,8 @@
                 "name": "DB_USER",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-postgresql-credentials",
-                    "key": "db-pass"
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "db-user"
                   }
                 }
               },
@@ -81,8 +81,8 @@
                 "name": "DB_PASS",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-postgresql-credentials",
-                    "key": "db-user"
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "db-pass"
                   }
                 }
               },
@@ -90,17 +90,65 @@
                 "name": "DB_NAME",
                 "valueFrom": {
                   "secretKeyRef": {
-                    "name": "$idx_and_short_serviceid-postgresql-credentials",
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
                     "key": "db-name"
                   }
                 }
               },
-              { "name": "PG_TRUST_LOCALNET", "value": "true"},
-              { "name": "REPLICATION_MODE", "value": "slave"},
-              { "name": "REPLICATION_SSLMODE", "value": "prefer"},
-              { "name": "MASTER_HOST_NAME", "value": "$idx_and_short_serviceid_MASTER_SERVICE_HOST"},
-              { "name": "REPLICATION_HOST", "value": ""},
-              { "name": "REPLICATION_PORT", "value": "5432"},
+              {
+                "name": "PG_TRUST_LOCALNET",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "pg-trust-localnet"
+                  }
+                }
+              },
+              {
+                "name": "REPLICATION_MODE",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "replication-mode"
+                  }
+                }
+              },
+              {
+                "name": "REPLICATION_SSLMODE",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "replication-sslmode"
+                  }
+                }
+              },
+              {
+                "name": "MASTER_HOST_NAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "master-host-name"
+                  }
+                }
+              },
+              {
+                "name": "REPLICATION_HOST",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "replication-host"
+                  }
+                }
+              },
+              {
+                "name": "REPLICATION_PORT",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "replication-port"
+                  }
+                }
+              },
               { "name": "MANAGED_BY", "value":"TAP" }
             ],
             "imagePullPolicy": "IfNotPresent"

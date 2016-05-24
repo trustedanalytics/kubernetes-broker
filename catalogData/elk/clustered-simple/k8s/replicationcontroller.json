@@ -64,17 +64,80 @@
             ],
             "env": [
               { "name": "MANAGED_BY", "value":"TAP" },
-
-              { "name": "KUBERNETES_CA_CERTIFICATE_FILE",   "value": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt" },
+              {
+                "name": "KUBERNETES_CA_CERTIFICATE_FILE",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "kubernetes-ca-certificate-file"
+                  }
+                }
+              },
               { "name": "NAMESPACE", "valueFrom": { "fieldRef": { "apiVersion": "v1", "fieldPath": "metadata.namespace" } } },
-              { "name": "CLUSTER_NAME",   "value": "$random3" },
-              { "name": "DISCOVERY_SERVICE",   "value": "$idx_and_short_serviceid" },
-              { "name": "NODE_MASTER",   "value": "true" },
-              { "name": "NODE_DATA",   "value": "true" },
+              {
+                "name": "CLUSTER_NAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "cluster-name"
+                  }
+                }
+              },
+              {
+                "name": "DISCOVERY_SERVICE",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "discovery-service"
+                  }
+                }
+              },
+              {
+                "name": "NODE_MASTER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "node-master"
+                  }
+                }
+              },
+              {
+                "name": "NODE_DATA",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "node-data"
+                  }
+                }
+              },
 
-              { "name": "USERNAME",   "value": "$random1" },
-              { "name": "PASSWORD",   "value": "$random2" },
-              { "name": "DBNAME",     "value": "$random3" }
+              {
+                "name": "USERNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "username"
+                  }
+                }
+              },
+              {
+                "name": "PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "password"
+                  }
+                }
+              },
+              {
+                "name": "DBNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "dbname"
+                  }
+                }
+              }
             ],
             "imagePullPolicy": "IfNotPresent"
           },
@@ -99,8 +162,24 @@
             ],
             "env": [
               { "name": "MANAGED_BY", "value":"TAP" },
-              { "name": "ELASTICSEARCH_URL",   "value": "http://localhost:9200" },
-              { "name": "DBNAME",     "value": "$random3" }
+              {
+                "name": "ELASTICSEARCH_URL",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "elasticsearch-url"
+                  }
+                }
+              },
+              {
+                "name": "DBNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "dbname"
+                  }
+                }
+              }
             ],
             "imagePullPolicy": "IfNotPresent"
           }

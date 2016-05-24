@@ -51,9 +51,33 @@
             ],
             "env": [
               { "name": "MANAGED_BY", "value":"TAP" },
-              { "name": "POSTGRES_USER",   "value": "$random1" },
-              { "name": "POSTGRES_PASSWORD",   "value": "$random2" },
-              { "name": "POSTGRES_DB",     "value": "$random3" }
+              {
+                "name": "POSTGRES_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-credentials",
+                    "key": "postgres-user"
+                  }
+                }
+              },
+              {
+                "name": "POSTGRES_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-credentials",
+                    "key": "postgres-password"
+                  }
+                }
+              },
+              {
+                "name": "POSTGRES_DB",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-credentials",
+                    "key": "postgres-db"
+                  }
+                }
+              }
             ],
             "imagePullPolicy": "IfNotPresent"
           }
