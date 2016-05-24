@@ -5,3 +5,4 @@
 /pkg
 /bin
 build_info.ini
+*mock.go
