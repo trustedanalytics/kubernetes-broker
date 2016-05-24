@@ -30,7 +30,7 @@ import (
 )
 
 func (k *K8sCreatorConnector) DeleteCluster(org string) error {
-	status, _, err := brokerHttp.RestDELETE(k.Server+"/clusters/"+org, &brokerHttp.BasicAuth{k.Username, k.Password}, k.Client)
+	status, _, err := brokerHttp.RestDELETE(k.Server+"/clusters/"+org, "", &brokerHttp.BasicAuth{k.Username, k.Password}, k.Client)
 	if status != 204 {
 		logger.Error("[DeleteCluster] Error - Cluster not exist! Org:", org)
 		return err
@@ -152,6 +152,7 @@ func (k *K8sCreatorConnector) GetOrCreateCluster(org string) (K8sClusterCredenti
 					logger.Error("[GetOrCreateCluster] ERROR: PostCluster", err)
 					return K8sClusterCredential{}, err
 				} else if status == 409 {
+					logger.Error("PostCluster: Unexpected cluster conflict!", err)
 					return K8sClusterCredential{}, errors.New("UnExpected Cluster conflict")
 				}
 				wasCreated = true

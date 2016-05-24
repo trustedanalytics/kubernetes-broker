@@ -24,6 +24,9 @@ export ACCEPT_INCOMPLETE=false
 export MAX_ORG_QUOTA=10
 export BROKER_LOG_LEVEL=DEBUG
 
+export WAIT_BEFORE_NEXT_PV_CHECK_SEC=120
+export WAIT_BEFORE_REMOVE_CLUSTER_SEC=600
+
 export VCAP_SERVICES='{
 "user-provided": [{
     "credentials": {

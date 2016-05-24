@@ -10,7 +10,7 @@ applications:
     - sso
     - kubernetes-creator-credentials
   env:
-    VERSION: "0.7.7"
+    VERSION: "0.7.8"
     AUTH_USER: admin
     AUTH_PASS: password
     ACCEPT_INCOMPLETE: true
@@ -21,3 +21,5 @@ applications:
     KUBE_REPO_URL: ""
     KUBE_REPO_MAIL: ""
     KUBE_SSL_ACTIVE: false
+    WAIT_BEFORE_NEXT_PV_CHECK_SEC: 120
+    WAIT_BEFORE_REMOVE_CLUSTER_SEC: 3600

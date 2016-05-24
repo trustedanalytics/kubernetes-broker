@@ -54,7 +54,7 @@ const URLserviceBindingsPath = "/v2/service_instances/:instance_id/service_bindi
 
 var testCatalogPath = tst.GetTestCatalogPath()
 var testError error = errors.New("New Errror")
-var testCreds k8s.K8sClusterCredential = k8s.K8sClusterCredential{"", tst.TestOrgHost, "", "", ""}
+var testCreds k8s.K8sClusterCredential = k8s.K8sClusterCredential{tst.TestOrgHost, tst.TestOrgHost, "", "", ""}
 
 func prepareMocksAndRouter(t *testing.T) (r *web.Router, mockCloudAPi *MockCloudApi,
 	mockKubernetesApi *k8s.MockKubernetesApi, mockStateService *state.MockStateService, mockCreatorConnector *k8s.MockK8sCreatorRest) {
@@ -253,9 +253,9 @@ func TestServiceInstancesGetLastOperation(t *testing.T) {
 		Convey("Should returns succeeded response", func() {
 			gomock.InOrder(
 				mockCloudAPi.EXPECT().GetOrgIdAndSpaceIdFromCfByServiceInstanceId(testId).Return(tst.TestOrgGuid, tst.TestSpaceGuid, nil),
-				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
 				mockStateService.EXPECT().HasProgressRecords(testId).Return(true),
 				mockStateService.EXPECT().ReadProgress(testId).Return(time.Now(), "IN_PROGRESS_KUBERNETES_OK", nil),
+				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
 				mockKubernetesApi.EXPECT().CheckKubernetesServiceHealthByServiceInstanceId(testCreds, tst.TestSpaceGuid, testId).Return(true, nil),
 			)
 
@@ -271,8 +271,8 @@ func TestServiceInstancesGetLastOperation(t *testing.T) {
 		Convey("Should returns failed response", func() {
 			gomock.InOrder(
 				mockCloudAPi.EXPECT().GetOrgIdAndSpaceIdFromCfByServiceInstanceId(testId).Return(tst.TestOrgGuid, tst.TestSpaceGuid, nil),
-				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
 				mockStateService.EXPECT().HasProgressRecords(testId).Return(false),
+				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
 			)
 
 			rr := sendRequest("GET", requestPath, nil, r)
@@ -294,6 +294,8 @@ func TestServiceInstancesGetLastOperation(t *testing.T) {
 
 func TestServiceInstancesDelete(t *testing.T) {
 	testId := "1223"
+	waitBeforeRemoveClusterIntervalSec = time.Millisecond
+	checkPVbeforeRemoveClusterIntervalSec = time.Second
 
 	r, mockCloudAPi, mockKubernetesApi, _, mockCreatorConnector := prepareMocksAndRouter(t)
 	r.Delete(URLserviceInstanceIdPath, (*Context).ServiceInstancesDelete)
@@ -301,28 +303,63 @@ func TestServiceInstancesDelete(t *testing.T) {
 	Convey("Test ServiceInstancesDelete", t, func() {
 		Convey("Should returns succeeded response", func() {
 			gomock.InOrder(
-				mockCloudAPi.EXPECT().GetOrgIdAndSpaceIdFromCfByServiceInstanceId(testId).
-					Return(tst.TestOrgGuid, tst.TestSpaceGuid, nil),
+				mockCloudAPi.EXPECT().GetOrgIdAndSpaceIdFromCfByServiceInstanceId(testId).Return(tst.TestOrgGuid, tst.TestSpaceGuid, nil),
 				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
-				mockKubernetesApi.EXPECT().DeleteAllByServiceId(testCreds, tst.TestSpaceGuid, testId).
-					Return(nil),
-				mockKubernetesApi.EXPECT().GetServices(testCreds, tst.TestOrgGuid).Return([]api.Service{}, nil),
-				mockKubernetesApi.EXPECT().ListReplicationControllers(testCreds, tst.TestSpaceGuid).
-					Return(&api.ReplicationControllerList{}, nil),
-				mockKubernetesApi.EXPECT().DeleteAllPersistentVolumes(testCreds).Return(nil),
+				mockKubernetesApi.EXPECT().DeleteAllByServiceId(testCreds, testId).Return(nil),
+				mockKubernetesApi.EXPECT().GetServices(testCreds, tst.TestOrgGuid).Return(nil, nil),
+				mockKubernetesApi.EXPECT().ListReplicationControllers(testCreds).Return(&api.ReplicationControllerList{}, nil),
+				mockKubernetesApi.EXPECT().DeleteAllPersistentVolumeClaims(testCreds).Return(nil),
+				mockKubernetesApi.EXPECT().GetAllPersistentVolumes(testCreds).Return(nil, nil),
 				mockCreatorConnector.EXPECT().DeleteCluster(tst.TestOrgGuid).Return(nil),
 			)
 
 			rr := sendRequest("DELETE", URLserviceInstancePath+testId, nil, r)
+			time.Sleep(time.Second * 3)
+			assertResponse(rr, "", 200)
+		})
+
+		Convey("Should wait until all PV will be removed and then remove cluster", func() {
+			gomock.InOrder(
+				mockCloudAPi.EXPECT().GetOrgIdAndSpaceIdFromCfByServiceInstanceId(testId).Return(tst.TestOrgGuid, tst.TestSpaceGuid, nil),
+				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
+				mockKubernetesApi.EXPECT().DeleteAllByServiceId(testCreds, testId).Return(nil),
+				mockKubernetesApi.EXPECT().GetServices(testCreds, tst.TestOrgGuid).Return(nil, nil),
+				mockKubernetesApi.EXPECT().ListReplicationControllers(testCreds).Return(&api.ReplicationControllerList{}, nil),
+				mockKubernetesApi.EXPECT().DeleteAllPersistentVolumeClaims(testCreds).Return(nil),
+				// return one PV to fore waitingon EBS action
+				mockKubernetesApi.EXPECT().GetAllPersistentVolumes(testCreds).Return([]api.PersistentVolume{{}}, nil),
+
+				mockKubernetesApi.EXPECT().GetServices(testCreds, tst.TestOrgGuid).Return(nil, nil),
+				mockKubernetesApi.EXPECT().ListReplicationControllers(testCreds).Return(&api.ReplicationControllerList{}, nil),
+				mockKubernetesApi.EXPECT().DeleteAllPersistentVolumeClaims(testCreds).Return(nil),
+				mockKubernetesApi.EXPECT().GetAllPersistentVolumes(testCreds).Return(nil, nil),
+				mockCreatorConnector.EXPECT().DeleteCluster(tst.TestOrgGuid).Return(nil),
+			)
+
+			rr := sendRequest("DELETE", URLserviceInstancePath+testId, nil, r)
+			time.Sleep(time.Second * 3)
+			assertResponse(rr, "", 200)
+		})
+
+		Convey("Should break removoving cluster if service occur", func() {
+			gomock.InOrder(
+				mockCloudAPi.EXPECT().GetOrgIdAndSpaceIdFromCfByServiceInstanceId(testId).Return(tst.TestOrgGuid, tst.TestSpaceGuid, nil),
+				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
+				mockKubernetesApi.EXPECT().DeleteAllByServiceId(testCreds, testId).Return(nil),
+				mockKubernetesApi.EXPECT().GetServices(testCreds, tst.TestOrgGuid).Return([]api.Service{api.Service{}}, nil),
+				mockKubernetesApi.EXPECT().ListReplicationControllers(testCreds).Return(&api.ReplicationControllerList{}, nil),
+			)
+
+			rr := sendRequest("DELETE", URLserviceInstancePath+testId, nil, r)
+			time.Sleep(time.Second * 3)
 			assertResponse(rr, "", 200)
 		})
 
 		Convey("Should returns error on kubernetes error", func() {
 			gomock.InOrder(
-				mockCloudAPi.EXPECT().GetOrgIdAndSpaceIdFromCfByServiceInstanceId(testId).
-					Return(tst.TestOrgGuid, tst.TestSpaceGuid, nil),
+				mockCloudAPi.EXPECT().GetOrgIdAndSpaceIdFromCfByServiceInstanceId(testId).Return(tst.TestOrgGuid, tst.TestSpaceGuid, nil),
 				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
-				mockKubernetesApi.EXPECT().DeleteAllByServiceId(testCreds, tst.TestSpaceGuid, testId).
+				mockKubernetesApi.EXPECT().DeleteAllByServiceId(testCreds, testId).
 					Return(errors.New("KUBERNETES ERROR")),
 			)
 

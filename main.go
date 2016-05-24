@@ -56,6 +56,7 @@ func main() {
 	logger.Info("Starting. Working directory is: ", cfApp.WorkingDir)
 
 	initServices(cfApp)
+	removeNotUsedClusters()
 
 	r := web.New(Context{})
 	r.Middleware(web.LoggerMiddleware)
@@ -136,4 +137,26 @@ func initServices(cfApp *cfenv.App) {
 
 	stateService = &state.StateMemoryService{}
 	kubernetesApi = k8s.NewK8Fabricator(serviceDomain)
+
+	waitBeforeNextPVCheckSec, err := strconv.Atoi(cfenv.CurrentEnv()["WAIT_BEFORE_NEXT_PV_CHECK_SEC"])
+	if err != nil {
+		logger.Fatal("WAIT_BEFORE_NEXT_PV_CHECK_SEC env not set or incorrect: " + err.Error())
+	}
+	waitBeforeRemoveClusterSec, err := strconv.Atoi(cfenv.CurrentEnv()["WAIT_BEFORE_REMOVE_CLUSTER_SEC"])
+	if err != nil {
+		logger.Fatal("WAIT_BEFORE_REMOVE_CLUSTER_SEC env not set or incorrect: " + err.Error())
+	}
+	checkPVbeforeRemoveClusterIntervalSec = time.Second * time.Duration(waitBeforeNextPVCheckSec)
+	waitBeforeRemoveClusterIntervalSec = time.Second * time.Duration(waitBeforeRemoveClusterSec)
+}
+
+func removeNotUsedClusters() {
+	clusters, err := creatorConnector.GetClusters()
+	if err != nil {
+		logger.Error("[removeNotUsedClusters] GetClusters error:", err)
+		return
+	}
+	for _, cluster := range clusters {
+		go removeCluster(cluster, cluster.CLusterName)
+	}
 }

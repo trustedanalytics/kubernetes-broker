@@ -26,12 +26,15 @@ import (
 
 	"github.com/cloudfoundry-community/go-cfenv"
 	"github.com/gocraft/web"
+	"k8s.io/kubernetes/pkg/api"
 
 	"github.com/trustedanalytics/kubernetes-broker/catalog"
 	"github.com/trustedanalytics/kubernetes-broker/k8s"
 	"github.com/trustedanalytics/kubernetes-broker/state"
-	"k8s.io/kubernetes/pkg/api"
 )
+
+var checkPVbeforeRemoveClusterIntervalSec time.Duration
+var waitBeforeRemoveClusterIntervalSec time.Duration
 
 var cloudProvider CloudApi
 var stateService state.StateService
@@ -127,6 +130,7 @@ func (c *Context) ServiceInstancesPut(rw web.ResponseWriter, req *web.Request) {
 
 		creds, err := c.CreatorConnector.GetOrCreateCluster(org)
 		if err != nil {
+			c.StateService.ReportProgress(instance_id, "FAILED", err)
 			Respond500(rw, err)
 			return
 		}
@@ -277,13 +281,7 @@ func (c *Context) ServiceInstancesGetLastOperation(rw web.ResponseWriter, req *w
 		return
 	}
 
-	_, creds, err := c.CreatorConnector.GetCluster(org)
-	if err != nil {
-		Respond500(rw, err)
-		return
-	}
-
-	var stateValue string
+	stateValue := "in progress"
 	var description string
 
 	if c.StateService.HasProgressRecords(instance_id) {
@@ -295,6 +293,12 @@ func (c *Context) ServiceInstancesGetLastOperation(rw web.ResponseWriter, req *w
 			stateValue = "failed"
 			logger.Error("[ServiceInstancesGetLastOperation] creating service takes too long! Status set to:", stateValue)
 		} else if description == "IN_PROGRESS_KUBERNETES_OK" {
+			_, creds, err := c.CreatorConnector.GetCluster(org)
+			if err != nil {
+				Respond500(rw, err)
+				return
+			}
+
 			healthy, err := c.KubernetesApi.CheckKubernetesServiceHealthByServiceInstanceId(creds, space, instance_id)
 			if err != nil {
 				stateValue = "in progress"
@@ -324,7 +328,7 @@ func (c *Context) ServiceInstancesDelete(rw web.ResponseWriter, req *web.Request
 	service_id := req.URL.Query().Get("service_id")
 	logger.Debug("ServiceInstancesDelete instance:", instance_id, "plan:", plan_id, "service", service_id)
 
-	org, space, err := c.CloudProvider.GetOrgIdAndSpaceIdFromCfByServiceInstanceId(instance_id)
+	org, _, err := c.CloudProvider.GetOrgIdAndSpaceIdFromCfByServiceInstanceId(instance_id)
 	if err != nil {
 		Respond500(rw, err)
 		return
@@ -346,45 +350,65 @@ func (c *Context) ServiceInstancesDelete(rw web.ResponseWriter, req *web.Request
 		return
 	}
 
-	err = c.KubernetesApi.DeleteAllByServiceId(creds, space, instance_id)
+	err = c.KubernetesApi.DeleteAllByServiceId(creds, instance_id)
 	if err != nil {
 		Respond500(rw, err)
 		return
 	}
 
-	//check if there is more services, if not then remove cluster
-	//todo currently we use hardcoded "deault" space
-	//todo -> in the feature we should check if other spaces in organization also don't contain any services
-	services, err := c.KubernetesApi.GetServices(creds, org)
-	if err != nil {
-		WriteJson(rw, ServiceInstancesDeleteResponse{}, http.StatusGone)
-		logger.Error(err)
-		return
-	}
+	go removeCluster(creds, org)
 
-	controllers, err := c.KubernetesApi.ListReplicationControllers(creds, space)
-	if err != nil {
-		Respond500(rw, err)
-		return
-	}
-
-	if len(services) == 0 || len(controllers.Items) == 0 {
-		logger.Info("There is no more services in the org. Cluster will be removed now...")
-
-		err = c.KubernetesApi.DeleteAllPersistentVolumes(creds)
-		if err != nil {
-			Respond500(rw, err)
-			return
-		}
-
-		err = c.CreatorConnector.DeleteCluster(org)
-		if err != nil {
-			Respond500(rw, err)
-			return
-		}
-	}
 	logger.Info("Service DELETED. Id:", service_id)
 	WriteJson(rw, ServiceInstancesDeleteResponse{}, http.StatusOK)
+}
+
+func removeCluster(creds k8s.K8sClusterCredential, org string) {
+	time.Sleep(waitBeforeRemoveClusterIntervalSec)
+
+	for {
+		services, err := kubernetesApi.GetServices(creds, org)
+		if err != nil {
+			logger.Error("[removeCluster] GetServices error. Org:", org, err)
+			return
+		}
+
+		controllers, err := kubernetesApi.ListReplicationControllers(creds)
+		if err != nil {
+			logger.Error("[removeCluster] ListReplicationControllers error. Org:", org, err)
+			return
+		}
+
+		if len(services) == 0 && len(controllers.Items) == 0 {
+			err = kubernetesApi.DeleteAllPersistentVolumeClaims(creds)
+			if err != nil {
+				logger.Error("[removeCluster] DeleteAllPersistentVolumeClaims error. Org:", org, err)
+				return
+			}
+
+			pvList, err := kubernetesApi.GetAllPersistentVolumes(creds)
+			if err != nil {
+				logger.Error("[removeCluster] GetAllPersistentVolumes error. Org:", org, err)
+				return
+			}
+
+			if len(pvList) == 0 {
+				logger.Info(fmt.Sprintf("[removeCluster] There is no more Services and PersistentVolumes for the org: %s. Cluster will be removed now...", org))
+				err = creatorConnector.DeleteCluster(org)
+				if err != nil {
+					logger.Error(err)
+					return
+				}
+				logger.Info("[removeCluster] Cluster removed successfully! Org:", org)
+				return
+			} else {
+				logger.Warning(fmt.Sprintf("[removeCluster] There are still some PersistentVolumes for the org: %s. Waiting for EBS to delete them...", org))
+				time.Sleep(checkPVbeforeRemoveClusterIntervalSec)
+			}
+		} else {
+			logger.Warning("[removeCluster] Some ervices exist! Removing cluster stopped! Org:", org)
+			return
+		}
+	}
 }
 
 type ServiceBindingsPutRequest struct {

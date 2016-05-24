@@ -215,35 +215,35 @@ func TestDeleteAllByServiceId(t *testing.T) {
 		Convey("Should returns proper response", func() {
 			mockKubernetesRest.LoadSimpleResponsesWithSameAction()
 
-			err := fabricator.DeleteAllByServiceId(testCreds, space, serviceId)
+			err := fabricator.DeleteAllByServiceId(testCreds, serviceId)
 			So(err, ShouldBeNil)
 		})
 
 		Convey("Should returns error on List ServiceAccounts fail", func() {
 			mockKubernetesRest.LoadSimpleResponsesWithSameAction(getErrorResponseForSpecificResource("ServiceAccountList"))
 
-			err := fabricator.DeleteAllByServiceId(testCreds, space, serviceId)
+			err := fabricator.DeleteAllByServiceId(testCreds, serviceId)
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("Should returns error on List Services fail", func() {
 			mockKubernetesRest.LoadSimpleResponsesWithSameAction(getErrorResponseForSpecificResource("ServiceList"))
 
-			err := fabricator.DeleteAllByServiceId(testCreds, space, serviceId)
+			err := fabricator.DeleteAllByServiceId(testCreds, serviceId)
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("Should returns error on List ReplicationControlles fail", func() {
 			mockKubernetesRest.LoadSimpleResponsesWithSameAction(getErrorResponseForSpecificResource("ReplicationControllerList"))
 
-			err := fabricator.DeleteAllByServiceId(testCreds, space, serviceId)
+			err := fabricator.DeleteAllByServiceId(testCreds, serviceId)
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("Should returns error on List Secret fail", func() {
 			mockKubernetesRest.LoadSimpleResponsesWithSameAction(getErrorResponseForSpecificResource("SecretList"))
 
-			err := fabricator.DeleteAllByServiceId(testCreds, space, serviceId)
+			err := fabricator.DeleteAllByServiceId(testCreds, serviceId)
 			So(err, ShouldNotBeNil)
 		})
 	})
