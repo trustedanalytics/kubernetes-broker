@@ -33,21 +33,21 @@ import (
 	"github.com/trustedanalytics/kubernetes-broker/state"
 )
 
-var checkPVbeforeRemoveClusterIntervalSec time.Duration
-var waitBeforeRemoveClusterIntervalSec time.Duration
+type BrokerConfig struct {
+	CheckPVbeforeRemoveClusterIntervalSec time.Duration
+	WaitBeforeRemoveClusterIntervalSec    time.Duration
+	CloudProvider                         CloudApi
+	StateService                          state.StateService
+	KubernetesApi                         k8s.KubernetesApi
+	CreatorConnector                      k8s.K8sCreatorRest
+}
 
-var cloudProvider CloudApi
-var stateService state.StateService
-var kubernetesApi k8s.KubernetesApi
-var creatorConnector k8s.K8sCreatorRest
+var brokerConfig *BrokerConfig
 
-// here we can inject specfic implementation for our services. This is for test purpose.
-// Normally we should inject it directly into Context during inicialization, but gocraft/web dosen't allow for this.
-func (c *Context) SetupContext(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
-	c.CloudProvider = cloudProvider
-	c.KubernetesApi = kubernetesApi
-	c.StateService = stateService
-	c.CreatorConnector = creatorConnector
+func (c *Context) CheckBrokerConfig(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
+	if brokerConfig == nil {
+		Respond500(rw, errors.New("brokerConfig not set!"))
+	}
 	next(rw, req)
 }
 
@@ -91,7 +91,7 @@ func (c *Context) ServiceInstancesPut(rw web.ResponseWriter, req *web.Request) {
 
 	err := ReadJson(req, &req_json)
 	if err != nil {
-		c.StateService.ReportProgress("1", "FAILED", err)
+		brokerConfig.StateService.ReportProgress("1", "FAILED", err)
 		Respond500(rw, err)
 		return
 	}
@@ -106,44 +106,44 @@ func (c *Context) ServiceInstancesPut(rw web.ResponseWriter, req *web.Request) {
 		async = true
 	}
 
-	c.StateService.ReportProgress(instance_id, "IN_PROGRESS_STARTED", nil)
+	brokerConfig.StateService.ReportProgress(instance_id, "IN_PROGRESS_STARTED", nil)
 	svc_meta, plan_meta, err := catalog.WhatToCreateByServiceAndPlanId(serviceId, planId)
 	if err != nil {
-		c.StateService.ReportProgress(instance_id, "FAILED", err)
+		brokerConfig.StateService.ReportProgress(instance_id, "FAILED", err)
 		Respond500(rw, err)
 		return
 	}
-	c.StateService.ReportProgress(instance_id, "IN_PROGRESS_METADATA_OK", nil)
+	brokerConfig.StateService.ReportProgress(instance_id, "IN_PROGRESS_METADATA_OK", nil)
 	fabrication_function := func() {
 		logger.Info("[ServiceInstancesPut] Creating ", svc_meta.Name, " with plan: ", plan_meta.Name)
-		c.StateService.ReportProgress(instance_id, "IN_PROGRESS_IN_BACKGROUND_JOB", nil)
+		brokerConfig.StateService.ReportProgress(instance_id, "IN_PROGRESS_IN_BACKGROUND_JOB", nil)
 		component, err := catalog.GetParsedKubernetesComponent(catalog.CatalogPath, instance_id, org, space, svc_meta, plan_meta)
 		if err != nil {
-			c.StateService.ReportProgress(instance_id, "FAILED", err)
+			brokerConfig.StateService.ReportProgress(instance_id, "FAILED", err)
 			if !async {
 				logger.Error(err)
 			}
 			Respond500(rw, err)
 			return
 		}
-		c.StateService.ReportProgress(instance_id, "IN_PROGRESS_BLUEPRINT_OK", nil)
+		brokerConfig.StateService.ReportProgress(instance_id, "IN_PROGRESS_BLUEPRINT_OK", nil)
 
-		creds, err := c.CreatorConnector.GetOrCreateCluster(org)
+		creds, err := brokerConfig.CreatorConnector.GetOrCreateCluster(org)
 		if err != nil {
 			Respond500(rw, err)
 			return
 		}
 
-		_, err = c.KubernetesApi.FabricateService(creds, space, instance_id, string(req_json.Parameters), c.StateService, component)
+		_, err = brokerConfig.KubernetesApi.FabricateService(creds, space, instance_id, string(req_json.Parameters), brokerConfig.StateService, component)
 		if err != nil {
-			c.StateService.ReportProgress(instance_id, "FAILED", err)
+			brokerConfig.StateService.ReportProgress(instance_id, "FAILED", err)
 			if !async {
 				logger.Error(err)
 			}
 			Respond500(rw, err)
 			return
 		}
-		c.StateService.ReportProgress(instance_id, "IN_PROGRESS_KUBERNETES_OK", nil)
+		brokerConfig.StateService.ReportProgress(instance_id, "IN_PROGRESS_KUBERNETES_OK", nil)
 	}
 	if async {
 		go fabrication_function()
@@ -167,21 +167,21 @@ func (c *Context) GetQuota(rw web.ResponseWriter, req *web.Request) {
 	logger.Info("getting quota")
 	err := ReadJson(req, &req_json)
 	if err != nil {
-		c.StateService.ReportProgress("1", "FAILED", err)
+		brokerConfig.StateService.ReportProgress("1", "FAILED", err)
 		Respond500(rw, err)
 		return
 	}
 
-	_, creds, err := c.CreatorConnector.GetCluster(req_json.OrganizationGuid)
+	_, creds, err := brokerConfig.CreatorConnector.GetCluster(req_json.OrganizationGuid)
 	if err != nil {
 		Respond500(rw, err)
 		return
 	}
 
-	quotaResource, err := c.KubernetesApi.GetQuota(creds, req_json.SpaceGuid)
+	quotaResource, err := brokerConfig.KubernetesApi.GetQuota(creds, req_json.SpaceGuid)
 
 	if err != nil {
-		c.StateService.ReportProgress("1", "FAILED", err)
+		brokerConfig.StateService.ReportProgress("1", "FAILED", err)
 		Respond500(rw, err)
 		return
 	}
@@ -196,16 +196,16 @@ func (c *Context) GetService(rw web.ResponseWriter, req *web.Request) {
 	space := req.PathParams["space_id"]
 	service_id := req.PathParams["instance_id"]
 
-	_, creds, err := c.CreatorConnector.GetCluster(org)
+	_, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
 	if err != nil {
 		Respond500(rw, err)
 		return
 	}
 
-	services, err := c.KubernetesApi.GetServiceVisibility(creds, org, space, service_id)
+	services, err := brokerConfig.KubernetesApi.GetServiceVisibility(creds, org, space, service_id)
 
 	if err != nil {
-		c.StateService.ReportProgress("1", "FAILED", err)
+		brokerConfig.StateService.ReportProgress("1", "FAILED", err)
 		Respond500(rw, err)
 		return
 	}
@@ -219,16 +219,16 @@ func (c *Context) GetServices(rw web.ResponseWriter, req *web.Request) {
 	org := req.PathParams["org_id"]
 	space := req.PathParams["space_id"]
 
-	_, creds, err := c.CreatorConnector.GetCluster(org)
+	_, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
 	if err != nil {
 		//Respond500(rw, err)
 		WriteJson(rw, []interface{}{}, http.StatusAccepted)
 		return
 	}
 
-	controllers, err := c.KubernetesApi.GetServicesVisibility(creds, org, space)
+	controllers, err := brokerConfig.KubernetesApi.GetServicesVisibility(creds, org, space)
 	if err != nil {
-		c.StateService.ReportProgress("1", "FAILED", err)
+		brokerConfig.StateService.ReportProgress("1", "FAILED", err)
 		//Respond500(rw, err)
 		WriteJson(rw, []interface{}{}, http.StatusAccepted)
 		return
@@ -243,22 +243,22 @@ func (c *Context) SetServiceVisibility(rw web.ResponseWriter, req *web.Request) 
 	logger.Info("Setting service visibility")
 	err := ReadJson(req, &req_json)
 	if err != nil {
-		c.StateService.ReportProgress("1", "FAILED", err)
+		brokerConfig.StateService.ReportProgress("1", "FAILED", err)
 		Respond500(rw, err)
 		return
 	}
 
-	_, creds, err := c.CreatorConnector.GetCluster(req_json.OrganizationGuid)
+	_, creds, err := brokerConfig.CreatorConnector.GetCluster(req_json.OrganizationGuid)
 	if err != nil {
 		Respond500(rw, err)
 		return
 	}
 
-	replicationControllerItem, err := c.KubernetesApi.SetServicePublicVisibilityByServiceId(creds, req_json.OrganizationGuid,
+	replicationControllerItem, err := brokerConfig.KubernetesApi.SetServicePublicVisibilityByServiceId(creds, req_json.OrganizationGuid,
 		req_json.SpaceGuid, req_json.ServiceId, req_json.Visibility)
 
 	if err != nil {
-		c.StateService.ReportProgress("1", "FAILED", err)
+		brokerConfig.StateService.ReportProgress("1", "FAILED", err)
 		Respond500(rw, err)
 		return
 	}
@@ -274,13 +274,13 @@ type ServiceInstancesGetLastOperationResponse struct {
 func (c *Context) ServiceInstancesGetLastOperation(rw web.ResponseWriter, req *web.Request) {
 	instance_id := req.PathParams["instance_id"]
 
-	org, space, err := c.CloudProvider.GetOrgIdAndSpaceIdFromCfByServiceInstanceId(instance_id)
+	org, space, err := brokerConfig.CloudProvider.GetOrgIdAndSpaceIdFromCfByServiceInstanceId(instance_id)
 	if err != nil {
 		Respond500(rw, err)
 		return
 	}
 
-	_, creds, err := c.CreatorConnector.GetCluster(org)
+	_, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
 	if err != nil {
 		Respond500(rw, err)
 		return
@@ -289,8 +289,8 @@ func (c *Context) ServiceInstancesGetLastOperation(rw web.ResponseWriter, req *w
 	var stateValue string
 	var description string
 
-	if c.StateService.HasProgressRecords(instance_id) {
-		ts, description, e := c.StateService.ReadProgress(instance_id)
+	if brokerConfig.StateService.HasProgressRecords(instance_id) {
+		ts, description, e := brokerConfig.StateService.ReadProgress(instance_id)
 		if e != nil || strings.HasPrefix(description, "FAIL") {
 			stateValue = "failed"
 			logger.Error("[ServiceInstancesGetLastOperation] Error found! Status set to:", stateValue, err)
@@ -298,7 +298,7 @@ func (c *Context) ServiceInstancesGetLastOperation(rw web.ResponseWriter, req *w
 			stateValue = "failed"
 			logger.Error("[ServiceInstancesGetLastOperation] creating service takes too long! Status set to:", stateValue)
 		} else if description == "IN_PROGRESS_KUBERNETES_OK" {
-			healthy, err := c.KubernetesApi.CheckKubernetesServiceHealthByServiceInstanceId(creds, space, instance_id)
+			healthy, err := brokerConfig.KubernetesApi.CheckKubernetesServiceHealthByServiceInstanceId(creds, space, instance_id)
 			if err != nil {
 				stateValue = "in progress"
 			} else if healthy {
@@ -327,13 +327,13 @@ func (c *Context) ServiceInstancesDelete(rw web.ResponseWriter, req *web.Request
 	service_id := req.URL.Query().Get("service_id")
 	logger.Debug("ServiceInstancesDelete instance:", instance_id, "plan:", plan_id, "service", service_id)
 
-	org, _, err := c.CloudProvider.GetOrgIdAndSpaceIdFromCfByServiceInstanceId(instance_id)
+	org, _, err := brokerConfig.CloudProvider.GetOrgIdAndSpaceIdFromCfByServiceInstanceId(instance_id)
 	if err != nil {
 		Respond500(rw, err)
 		return
 	}
 
-	status, creds, err := c.CreatorConnector.GetCluster(org)
+	status, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
 	if err != nil {
 		if status != 200 {
 			WriteJson(rw, ServiceInstancesDeleteResponse{}, http.StatusGone)
@@ -349,7 +349,7 @@ func (c *Context) ServiceInstancesDelete(rw web.ResponseWriter, req *web.Request
 		return
 	}
 
-	err = c.KubernetesApi.DeleteAllByServiceId(creds, instance_id)
+	err = brokerConfig.KubernetesApi.DeleteAllByServiceId(creds, instance_id)
 	if err != nil {
 		Respond500(rw, err)
 		return
@@ -362,29 +362,29 @@ func (c *Context) ServiceInstancesDelete(rw web.ResponseWriter, req *web.Request
 }
 
 func removeCluster(creds k8s.K8sClusterCredential, org string) {
-	time.Sleep(waitBeforeRemoveClusterIntervalSec)
+	time.Sleep(brokerConfig.WaitBeforeRemoveClusterIntervalSec)
 
 	for {
-		services, err := kubernetesApi.GetServices(creds, org)
+		services, err := brokerConfig.KubernetesApi.GetServices(creds, org)
 		if err != nil {
 			logger.Error("[removeCluster] GetServices error. Org:", org, err)
 			return
 		}
 
-		controllers, err := kubernetesApi.ListReplicationControllers(creds)
+		controllers, err := brokerConfig.KubernetesApi.ListReplicationControllers(creds)
 		if err != nil {
 			logger.Error("[removeCluster] ListReplicationControllers error. Org:", org, err)
 			return
 		}
 
 		if len(services) == 0 && len(controllers.Items) == 0 {
-			err = kubernetesApi.DeleteAllPersistentVolumeClaims(creds)
+			err = brokerConfig.KubernetesApi.DeleteAllPersistentVolumeClaims(creds)
 			if err != nil {
 				logger.Error("[removeCluster] DeleteAllPersistentVolumeClaims error. Org:", org, err)
 				return
 			}
 
-			pvList, err := kubernetesApi.GetAllPersistentVolumes(creds)
+			pvList, err := brokerConfig.KubernetesApi.GetAllPersistentVolumes(creds)
 			if err != nil {
 				logger.Error("[removeCluster] GetAllPersistentVolumes error. Org:", org, err)
 				return
@@ -392,7 +392,7 @@ func removeCluster(creds k8s.K8sClusterCredential, org string) {
 
 			if len(pvList) == 0 {
 				logger.Info(fmt.Sprintf("[removeCluster] There is no more Services and PersistentVolumes for the org: %s. Cluster will be removed now...", org))
-				err = creatorConnector.DeleteCluster(org)
+				err = brokerConfig.CreatorConnector.DeleteCluster(org)
 				if err != nil {
 					logger.Error(err)
 					return
@@ -401,7 +401,7 @@ func removeCluster(creds k8s.K8sClusterCredential, org string) {
 				return
 			} else {
 				logger.Warning(fmt.Sprintf("[removeCluster] There are still some PersistentVolumes for the org: %s. Waiting for EBS to delete them...", org))
-				time.Sleep(checkPVbeforeRemoveClusterIntervalSec)
+				time.Sleep(brokerConfig.CheckPVbeforeRemoveClusterIntervalSec)
 			}
 		} else {
 			logger.Warning("[removeCluster] Some ervices exist! Removing cluster stopped! Org:", org)
@@ -439,26 +439,26 @@ func (c *Context) ServiceBindingsPut(rw web.ResponseWriter, req *web.Request) {
 	}
 	logger.Info("Binding, found blueprint name: ", svc_meta.Name, " with plan: ", plan_meta.Name)
 
-	org, space, err := c.CloudProvider.GetOrgIdAndSpaceIdFromCfByServiceInstanceId(instance_id)
+	org, space, err := brokerConfig.CloudProvider.GetOrgIdAndSpaceIdFromCfByServiceInstanceId(instance_id)
 	if err != nil {
 		Respond500(rw, err)
 		return
 	}
 	logger.Debug("org: ", org, "space: ", space)
 
-	_, creds, err := c.CreatorConnector.GetCluster(org)
+	_, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
 	if err != nil {
 		Respond500(rw, err)
 		return
 	}
 
-	podsEnvs, err := c.KubernetesApi.GetAllPodsEnvsByServiceId(creds, space, instance_id)
+	podsEnvs, err := brokerConfig.KubernetesApi.GetAllPodsEnvsByServiceId(creds, space, instance_id)
 	if err != nil {
 		Respond500(rw, err)
 		return
 	}
 
-	svcCreds, err := c.KubernetesApi.GetServiceCredentials(creds, space, instance_id)
+	svcCreds, err := brokerConfig.KubernetesApi.GetServiceCredentials(creds, space, instance_id)
 	if err != nil {
 		Respond500(rw, err)
 		return
@@ -531,7 +531,7 @@ func (c *Context) CreateAndRegisterDynamicService(rw web.ResponseWriter, req *we
 	catalog.RegisterOfferingInCatalog(service, blueprint)
 
 	if req_json.UpdateBroker {
-		_, err = cloudProvider.UpdateServiceBroker()
+		_, err = brokerConfig.CloudProvider.UpdateServiceBroker()
 		if err != nil {
 			Respond500(rw, err)
 			return
@@ -564,7 +564,7 @@ func (c *Context) DeleteAndUnRegisterDynamicService(rw web.ResponseWriter, req *
 	//TODO we not persist copy of dynamic services yet, but remember to remove it in the future
 
 	if req_json.UpdateBroker {
-		_, err = cloudProvider.UpdateServiceBroker()
+		_, err = brokerConfig.CloudProvider.UpdateServiceBroker()
 		if err != nil {
 			Respond500(rw, err)
 			return
@@ -578,13 +578,13 @@ func (c *Context) CheckPodsStatusForService(rw web.ResponseWriter, req *web.Requ
 	instanceId := req.PathParams["instance_id"]
 	orgId := req.PathParams["org_id"]
 
-	_, creds, err := c.CreatorConnector.GetCluster(orgId)
+	_, creds, err := brokerConfig.CreatorConnector.GetCluster(orgId)
 	if err != nil {
 		Respond500(rw, err)
 		return
 	}
 
-	podsStates, err := c.KubernetesApi.GetPodsStateByServiceId(creds, instanceId)
+	podsStates, err := brokerConfig.KubernetesApi.GetPodsStateByServiceId(creds, instanceId)
 	if err != nil {
 		Respond500(rw, err)
 		return
@@ -595,13 +595,13 @@ func (c *Context) CheckPodsStatusForService(rw web.ResponseWriter, req *web.Requ
 func (c *Context) CheckPodsStatusForAllServicesInOrg(rw web.ResponseWriter, req *web.Request) {
 	orgId := req.PathParams["org_id"]
 
-	_, creds, err := c.CreatorConnector.GetCluster(orgId)
+	_, creds, err := brokerConfig.CreatorConnector.GetCluster(orgId)
 	if err != nil {
 		Respond500(rw, err)
 		return
 	}
 
-	podsStates, err := c.KubernetesApi.GetPodsStateForAllServices(creds)
+	podsStates, err := brokerConfig.KubernetesApi.GetPodsStateForAllServices(creds)
 	if err != nil {
 		Respond500(rw, err)
 		return
@@ -612,12 +612,12 @@ func (c *Context) CheckPodsStatusForAllServicesInOrg(rw web.ResponseWriter, req 
 func (c *Context) GetSecret(rw web.ResponseWriter, req *web.Request) {
 	org := req.PathParams["org_id"]
 	key := req.PathParams["key"]
-	_, creds, err := c.CreatorConnector.GetCluster(org)
+	_, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
 	if err != nil {
 		Respond500(rw, err)
 		return
 	}
-	secret, err := c.KubernetesApi.GetSecret(creds, key)
+	secret, err := brokerConfig.KubernetesApi.GetSecret(creds, key)
 	if err != nil {
 		Respond500(rw, err)
 		return
@@ -627,7 +627,7 @@ func (c *Context) GetSecret(rw web.ResponseWriter, req *web.Request) {
 
 func (c *Context) CreateSecret(rw web.ResponseWriter, req *web.Request) {
 	org := req.PathParams["org_id"]
-	_, creds, err := c.CreatorConnector.GetCluster(org)
+	_, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
 	if err != nil {
 		Respond500(rw, err)
 		return
@@ -638,7 +638,7 @@ func (c *Context) CreateSecret(rw web.ResponseWriter, req *web.Request) {
 		Respond500(rw, err)
 		return
 	}
-	err = c.KubernetesApi.CreateSecret(creds, req_json)
+	err = brokerConfig.KubernetesApi.CreateSecret(creds, req_json)
 	if err != nil {
 		Respond500(rw, err)
 		return
@@ -649,12 +649,12 @@ func (c *Context) CreateSecret(rw web.ResponseWriter, req *web.Request) {
 func (c *Context) DeleteSecret(rw web.ResponseWriter, req *web.Request) {
 	org := req.PathParams["org_id"]
 	key := req.PathParams["key"]
-	_, creds, err := c.CreatorConnector.GetCluster(org)
+	_, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
 	if err != nil {
 		Respond500(rw, err)
 		return
 	}
-	err = c.KubernetesApi.DeleteSecret(creds, key)
+	err = brokerConfig.KubernetesApi.DeleteSecret(creds, key)
 	if err != nil {
 		Respond500(rw, err)
 		return
@@ -664,7 +664,7 @@ func (c *Context) DeleteSecret(rw web.ResponseWriter, req *web.Request) {
 
 func (c *Context) UpdateSecret(rw web.ResponseWriter, req *web.Request) {
 	org := req.PathParams["org_id"]
-	_, creds, err := c.CreatorConnector.GetCluster(org)
+	_, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
 	if err != nil {
 		Respond500(rw, err)
 		return
@@ -675,7 +675,7 @@ func (c *Context) UpdateSecret(rw web.ResponseWriter, req *web.Request) {
 		Respond500(rw, err)
 		return
 	}
-	err = c.KubernetesApi.UpdateSecret(creds, req_json)
+	err = brokerConfig.KubernetesApi.UpdateSecret(creds, req_json)
 	if err != nil {
 		Respond500(rw, err)
 		return

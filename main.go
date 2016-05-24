@@ -32,12 +32,7 @@ import (
 	"github.com/trustedanalytics/kubernetes-broker/state"
 )
 
-type Context struct {
-	CloudProvider    CloudApi
-	KubernetesApi    k8s.KubernetesApi
-	StateService     state.StateService
-	CreatorConnector k8s.K8sCreatorRest
-}
+type Context struct{}
 
 type appHandler func(web.ResponseWriter, *web.Request) error
 
@@ -60,7 +55,7 @@ func main() {
 
 	r := web.New(Context{})
 	r.Middleware(web.LoggerMiddleware)
-	r.Middleware((*Context).SetupContext)
+	r.Middleware((*Context).CheckBrokerConfig)
 	r.Error((*Context).Error)
 
 	r.Get("/", (*Context).Index)
@@ -108,11 +103,13 @@ func initServices(cfApp *cfenv.App) {
 		serviceDomain = strings.TrimPrefix(serviceDomain, "kubernetes-broker.")
 	}
 
+	brokerConfig = &BrokerConfig{}
+
 	sso, err := cfApp.Services.WithName("sso")
 	if err != nil {
 		logger.Fatal("SSO service can't be found!", err)
 	}
-	cloudProvider = NewCFApiClient(
+	brokerConfig.CloudProvider = NewCFApiClient(
 		sso.Credentials["clientId"].(string),
 		sso.Credentials["clientSecret"].(string),
 		sso.Credentials["tokenUri"].(string),
@@ -128,15 +125,15 @@ func initServices(cfApp *cfenv.App) {
 	if err != nil {
 		logger.Fatal("MAX_ORG_QUOTA env not set or incorrect: " + err.Error())
 	}
-	creatorConnector = k8s.NewK8sCreatorConnector(
+	brokerConfig.CreatorConnector = k8s.NewK8sCreatorConnector(
 		kubeCreds.Credentials["url"].(string),
 		kubeCreds.Credentials["username"].(string),
 		kubeCreds.Credentials["password"].(string),
 		maxOrgsNo,
 	)
 
-	stateService = &state.StateMemoryService{}
-	kubernetesApi = k8s.NewK8Fabricator(serviceDomain)
+	brokerConfig.StateService = &state.StateMemoryService{}
+	brokerConfig.KubernetesApi = k8s.NewK8Fabricator(serviceDomain)
 
 	waitBeforeNextPVCheckSec, err := strconv.Atoi(cfenv.CurrentEnv()["WAIT_BEFORE_NEXT_PV_CHECK_SEC"])
 	if err != nil {
@@ -146,12 +143,12 @@ func initServices(cfApp *cfenv.App) {
 	if err != nil {
 		logger.Fatal("WAIT_BEFORE_REMOVE_CLUSTER_SEC env not set or incorrect: " + err.Error())
 	}
-	checkPVbeforeRemoveClusterIntervalSec = time.Second * time.Duration(waitBeforeNextPVCheckSec)
-	waitBeforeRemoveClusterIntervalSec = time.Second * time.Duration(waitBeforeRemoveClusterSec)
+	brokerConfig.CheckPVbeforeRemoveClusterIntervalSec = time.Second * time.Duration(waitBeforeNextPVCheckSec)
+	brokerConfig.WaitBeforeRemoveClusterIntervalSec = time.Second * time.Duration(waitBeforeRemoveClusterSec)
 }
 
 func removeNotUsedClusters() {
-	clusters, err := creatorConnector.GetClusters()
+	clusters, err := brokerConfig.CreatorConnector.GetClusters()
 	if err != nil {
 		logger.Error("[removeNotUsedClusters] GetClusters error:", err)
 		return

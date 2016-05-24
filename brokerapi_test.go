@@ -69,14 +69,16 @@ func prepareMocksAndRouter(t *testing.T) (r *web.Router, mockCloudAPi *MockCloud
 	mockStateService = state.NewMockStateService(mockCtrl)
 	mockCreatorConnector = k8s.NewMockK8sCreatorRest(mockCtrl)
 
-	// inject mock into brokerapi
-	cloudProvider = mockCloudAPi
-	kubernetesApi = mockKubernetesApi
-	stateService = mockStateService
-	creatorConnector = mockCreatorConnector
+	brokerConfig = &BrokerConfig{
+		CloudProvider:                         mockCloudAPi,
+		KubernetesApi:                         mockKubernetesApi,
+		StateService:                          mockStateService,
+		CreatorConnector:                      mockCreatorConnector,
+		WaitBeforeRemoveClusterIntervalSec:    time.Millisecond,
+		CheckPVbeforeRemoveClusterIntervalSec: time.Second,
+	}
 
 	r = web.New(Context{})
-	r.Middleware((*Context).SetupContext)
 	return
 }
 
@@ -294,8 +296,6 @@ func TestServiceInstancesGetLastOperation(t *testing.T) {
 
 func TestServiceInstancesDelete(t *testing.T) {
 	testId := "1223"
-	waitBeforeRemoveClusterIntervalSec = time.Millisecond
-	checkPVbeforeRemoveClusterIntervalSec = time.Second
 
 	r, mockCloudAPi, mockKubernetesApi, _, mockCreatorConnector := prepareMocksAndRouter(t)
 	r.Delete(URLserviceInstanceIdPath, (*Context).ServiceInstancesDelete)
