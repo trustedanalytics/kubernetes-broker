@@ -30,11 +30,9 @@ import (
 )
 
 func (k *K8sCreatorConnector) DeleteCluster(org string) error {
-	k8sCreatorPostClusterResponse := K8sClusterCredential{}
-	_, resp, err := brokerHttp.RestDELETE(k.Server+"/clusters/"+org, &brokerHttp.BasicAuth{k.Username, k.Password}, k.Client)
-	err = json.Unmarshal(resp, &k8sCreatorPostClusterResponse)
-	if err != nil {
-		logger.Error("[DeleteCluster] Error: ", err)
+	status, _, err := brokerHttp.RestDELETE(k.Server+"/clusters/"+org, &brokerHttp.BasicAuth{k.Username, k.Password}, k.Client)
+	if status != 204 {
+		logger.Error("[DeleteCluster] Error - Cluster not exist! Org:", org)
 		return err
 	}
 	return nil

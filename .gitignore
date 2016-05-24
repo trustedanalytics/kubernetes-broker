@@ -6,3 +6,4 @@
 /bin
 build_info.ini
 *mock.go
+*mock_test.go

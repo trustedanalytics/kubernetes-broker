@@ -66,7 +66,7 @@
                 "valueFrom": {
                   "secretKeyRef": {
                     "name": "$idx_and_short_serviceid-postgresql-credentials",
-                    "key": "db-pass"
+                    "key": "db-user"
                   }
                 }
               },
@@ -75,7 +75,7 @@
                 "valueFrom": {
                   "secretKeyRef": {
                     "name": "$idx_and_short_serviceid-postgresql-credentials",
-                    "key": "db-user"
+                    "key": "db-pass"
                   }
                 }
               },
