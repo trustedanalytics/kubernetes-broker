@@ -20,6 +20,9 @@ local_bin/app: verify_gopath
 run: local_bin/app
 	./scripts/start.sh
 
+run_tapng_provider: local_bin/app
+	./scripts/start_tap-ng_template-provider.sh
+
 bin/govendor: verify_gopath
 	go get -v -u github.com/kardianos/govendor
 
@@ -79,7 +82,7 @@ update:
 	./scripts/cf-updatesvc.sh
 
 mock_update: bin/gomock
-	$(GOBIN)/mockgen -source=cfapi.go -package=main -destination=cfapi_mock_test.go
+	$(GOBIN)/mockgen -source=app/tap/cfapi.go -package=main -destination=app/tap/cfapi_mock_test.go
 	$(GOBIN)/mockgen -source=k8s/k8sfabricator.go -package=k8s -destination=k8s/k8sfabricator_mock.go
 	$(GOBIN)/mockgen -source=k8s/k8screator_rest_api.go -package=k8s -destination=k8s/k8screator_rest_api_mock.go
 	$(GOBIN)/mockgen -source=state/state.go -package=state -destination=state/state_mock.go
@@ -93,7 +96,7 @@ kate:
 
 pack: build
 	test -d "application" || mkdir application
-	cp -Rf $(GOBIN)/kubernetes-broker application
+	cp -Rf $(GOBIN)/tap application/kubernetes-broker
 	echo "commit_sha=$(COMMIT_SHA)" > build_info.ini
 	zip -r -q kubernetes-broker-${VERSION}.zip application catalogData template manifest.yml build_info.ini
 
@@ -107,7 +110,7 @@ pack_anywhere: pack_prepare_dirs
 	$(eval PROJECT_NAME=$(shell basename `pwd`))
 	$(eval LOCAL_APP_DIR_LIST=$(shell cd temp/src/github.com/trustedanalytics/kubernetes-broker; GOPATH=$(GOPATH) go list ./... | grep -v /vendor/))
 	GOPATH=$(GOPATH) CGO_ENABLED=0 go install -tags netgo $(LOCAL_APP_DIR_LIST)
-	cp -Rf $(GOPATH)/bin/kubernetes-broker application
+	cp -Rf $(GOPATH)/bin/tap application/kubernetes-broker
 	echo "commit_sha=$(COMMIT_SHA)" > build_info.ini
 	zip -r -q kubernetes-broker-${VERSION}.zip application catalogData template manifest.yml build_info.ini
 	rm -Rf ./temp

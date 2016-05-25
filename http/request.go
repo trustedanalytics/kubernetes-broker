@@ -38,8 +38,8 @@ func RestPOST(url, body string, basicAuth *BasicAuth, client *http.Client) (int,
 	return makeRequest("POST", url, body, "application/json", basicAuth, client)
 }
 
-func RestDELETE(url string, basicAuth *BasicAuth, client *http.Client) (int, []byte, error) {
-	return makeRequest("DELETE", url, "", "", basicAuth, client)
+func RestDELETE(url, body string, basicAuth *BasicAuth, client *http.Client) (int, []byte, error) {
+	return makeRequest("DELETE", url, body, "", basicAuth, client)
 }
 
 func RestPATCH(url, body string, basicAuth *BasicAuth, client *http.Client) (int, []byte, error) {

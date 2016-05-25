@@ -39,12 +39,12 @@ const testSecretName = "testSecretName"
 
 var logger = logger_wrapper.InitLogger("test")
 
-func GetTestCatalogPath() string {
+func GetTestCatalogPath(nameToTrim string) string {
 	pwd, err := os.Getwd()
 	if err != nil {
 		logger.Fatal("Unable to get working directory!")
 	}
-	return "/" + strings.Trim(pwd, "/catalog") + "/test/catalog/"
+	return "/" + strings.Trim(pwd, nameToTrim) + "/test/catalog/"
 }
 
 func GetTestSecretData() []byte {

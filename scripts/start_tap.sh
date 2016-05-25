@@ -52,5 +52,5 @@ export VCAP_SERVICES='{
 
 export KUBE_SSL_ACTIVE=false
 
-$GOPATH/bin/kubernetes-broker
+$GOPATH/bin/tap
 exit $?

@@ -23,7 +23,7 @@ import (
 	tst "github.com/trustedanalytics/kubernetes-broker/test"
 )
 
-var testCatalogPath = tst.GetTestCatalogPath()
+var testCatalogPath = tst.GetTestCatalogPath("/catalog")
 
 func TestGetOrgIdAndSpaceIdFromCfByServiceInstanceIdJson(t *testing.T) {
 	Convey("Test GetOrgIdAndSpaceIdFromCfByServiceInstanceIdJson", t, func() {

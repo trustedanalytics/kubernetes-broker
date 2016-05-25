@@ -53,7 +53,7 @@ const URLserviceInstanceIdPath = "/v2/service_instances/:instance_id"
 const URLlastOperationPath = "/v2/service_instances/:instance_id/last_operation"
 const URLserviceBindingsPath = "/v2/service_instances/:instance_id/service_bindings/:binding_id"
 
-var testCatalogPath = tst.GetTestCatalogPath()
+var testCatalogPath = tst.GetTestCatalogPath("/app/tap")
 var testError error = errors.New("New Errror")
 var testCreds k8s.K8sClusterCredential = k8s.K8sClusterCredential{tst.TestOrgHost, tst.TestOrgHost, "", "", ""}
 
