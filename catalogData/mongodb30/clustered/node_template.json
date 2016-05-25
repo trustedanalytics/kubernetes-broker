@@ -1,0 +1,7 @@
+{
+  "replicaName": "$nodeName",
+  "host": "$hostname",
+  "ports": {
+    "27017/tcp": "$port_27017"
+  }
+}

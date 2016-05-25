@@ -12,9 +12,9 @@ This is example of environments returned by binded app:
 ```json
 {
   "VCAP_SERVICES": {
-    "postgresql94-clustered": [
+    "postgresql94-multinode": [
         {
-          "label": "postgresql94-clustered",
+          "label": "postgresql94-multinode",
           "name": "custom-postgresql",
           "plan": "free",
           "tags": [

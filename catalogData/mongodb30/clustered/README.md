@@ -9,7 +9,7 @@ This is example of environments returned by binded app:
 ```json
 {
   "VCAP_SERVICES": {
-    "k-mongodb-clustered": [
+    "mongodb30-multinode": [
       {
         "credentials": {
           "dbname": "admin",
@@ -41,7 +41,7 @@ This is example of environments returned by binded app:
           "serviceName": "mongodb-clustered",
           "username": "sUkwJiZoEh"
         },
-        "label": "k-mongodb-clustered",
+        "label": "mongodb30-multinode",
         "name": "test-service-mongo",
         "plan": "simple",
         "tags": [

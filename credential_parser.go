@@ -28,7 +28,7 @@ import (
 	"github.com/trustedanalytics/kubernetes-broker/k8s"
 )
 
-func ParseCredentialMappingAdvanced(serviceMetaName string, svcCreds []k8s.ServiceCredential, pods []k8s.PodEnvs,
+func ParseCredentialMappingAdvanced(serviceMetaName string, svcCreds []ServiceCredential, pods []k8s.PodEnvs,
 	blueprint catalog.KubernetesBlueprint) (string, error) {
 	var err error = nil
 	var parsedMapping string
@@ -54,7 +54,7 @@ func ParseCredentialMappingAdvanced(serviceMetaName string, svcCreds []k8s.Servi
 	return parsedMapping, nil
 }
 
-func parseSvcCredsForClusteredPlan(blueprint catalog.KubernetesBlueprint, svcCreds []k8s.ServiceCredential) (string, error) {
+func parseSvcCredsForClusteredPlan(blueprint catalog.KubernetesBlueprint, svcCreds []ServiceCredential) (string, error) {
 	var err error = nil
 	parsedReplicas := []string{}
 
@@ -75,7 +75,7 @@ func parseSvcCredsForClusteredPlan(blueprint catalog.KubernetesBlueprint, svcCre
 	return parsedMapping, nil
 }
 
-func parseSvcCredsForSimplePlan(templateToParse string, svcCreds []k8s.ServiceCredential) (string, error) {
+func parseSvcCredsForSimplePlan(templateToParse string, svcCreds []ServiceCredential) (string, error) {
 	var err error = nil
 
 	//TODO we should refactor all our credentialmapping.json in simple plans because they don't support more then 1 service

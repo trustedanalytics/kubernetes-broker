@@ -27,7 +27,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/trustedanalytics/kubernetes-broker/catalog"
-	"github.com/trustedanalytics/kubernetes-broker/consul"
 	"github.com/trustedanalytics/kubernetes-broker/state"
 )
 
@@ -39,15 +38,12 @@ type KubernetesApi interface {
 	DeleteAllPersistentVolumeClaims(creds K8sClusterCredential) error
 	GetAllPersistentVolumes(creds K8sClusterCredential) ([]api.PersistentVolume, error)
 	GetAllPodsEnvsByServiceId(creds K8sClusterCredential, space, service_id string) ([]PodEnvs, error)
-	GetServiceVisibility(creds K8sClusterCredential, org, space, service_id string) ([]K8sServiceInfo, error)
-	GetServicesVisibility(creds K8sClusterCredential, org, space string) ([]K8sServiceInfo, error)
-	GetServiceCredentials(creds K8sClusterCredential, space, service_id string) ([]ServiceCredential, error)
+	GetService(creds K8sClusterCredential, org, serviceId string) ([]api.Service, error)
 	GetServices(creds K8sClusterCredential, org string) ([]api.Service, error)
 	GetQuota(creds K8sClusterCredential, space string) (*api.ResourceQuotaList, error)
 	GetClusterWorkers(creds K8sClusterCredential) ([]string, error)
 	GetPodsStateByServiceId(creds K8sClusterCredential, service_id string) ([]PodStatus, error)
 	GetPodsStateForAllServices(creds K8sClusterCredential) (map[string][]PodStatus, error)
-	SetServicePublicVisibilityByServiceId(creds K8sClusterCredential, org, space, service_id string, shouldBePublic bool) ([]K8sServiceInfo, error)
 	ListReplicationControllers(creds K8sClusterCredential) (*api.ReplicationControllerList, error)
 	GetSecret(creds K8sClusterCredential, key string) (*api.Secret, error)
 	CreateSecret(creds K8sClusterCredential, secret api.Secret) error
@@ -57,8 +53,6 @@ type KubernetesApi interface {
 
 type K8Fabricator struct {
 	KubernetesClient KubernetesClientCreator
-	ConsulApi        consul.ConsulService
-	Domain           string
 }
 
 type FabricateResult struct {
@@ -75,8 +69,8 @@ type K8sServiceInfo struct {
 	Uri       []string `json:"uri"`
 }
 
-func NewK8Fabricator(domain string) *K8Fabricator {
-	return &K8Fabricator{KubernetesClient: &KubernetesRestCreator{}, ConsulApi: &consul.ConsulConnector{}, Domain: domain}
+func NewK8Fabricator() *K8Fabricator {
+	return &K8Fabricator{KubernetesClient: &KubernetesRestCreator{}}
 }
 
 func (k *K8Fabricator) FabricateService(creds K8sClusterCredential, space, cf_service_id, parameters string,
@@ -330,63 +324,24 @@ func (k *K8Fabricator) GetAllPersistentVolumes(creds K8sClusterCredential) ([]ap
 	return pvList.Items, nil
 }
 
-func (k *K8Fabricator) GetServiceVisibility(creds K8sClusterCredential, org, space, service_id string) ([]K8sServiceInfo, error) {
-	logger.Info("[GetServiceVisibility]:", service_id)
-	response := []K8sServiceInfo{}
+func (k *K8Fabricator) GetService(creds K8sClusterCredential, org, serviceId string) ([]api.Service, error) {
+	logger.Info("[GetService] orgId:", org)
+	response := []api.Service{}
 
-	c, selector, err := k.getKubernetesClientWithServiceIdSelector(creds, service_id)
+	c, selector, err := k.getKubernetesClientWithServiceIdSelector(creds, serviceId)
 	if err != nil {
 		return response, err
 	}
 
-	services, err := c.Services(api.NamespaceDefault).List(api.ListOptions{
+	serviceList, err := c.Services(api.NamespaceDefault).List(api.ListOptions{
 		LabelSelector: selector,
 	})
 	if err != nil {
-		logger.Error("[GetServiceVisibility] Get services list failed:", err)
+		logger.Error("[GetService] ListServices failed:", err)
 		return response, err
 	}
 
-	servicesPublicTags, err := k.ConsulApi.GetServicesListWithPublicTagStatus(creds.ConsulEndpoint)
-	if err != nil {
-		return response, err
-	}
-
-	response = createServiceInfoList(org, space, k.Domain, services.Items, servicesPublicTags)
-	return response, nil
-}
-
-func (k *K8Fabricator) GetServicesVisibility(creds K8sClusterCredential, org, space string) ([]K8sServiceInfo, error) {
-	logger.Info("[GetServicesVisibility] orgId:", org)
-	response := []K8sServiceInfo{}
-
-	c, err := k.KubernetesClient.GetNewClient(creds)
-	if err != nil {
-		logger.Error("[GetServicesVisibility] GetNewClient error", err)
-		return response, err
-	}
-	selector, err := getSelectorForManagedByLabel()
-	if err != nil {
-		logger.Error("[GetServicesVisibility] GetSelectorForManagedByLabel error", err)
-		return response, err
-	}
-
-	services, err := c.Services(api.NamespaceDefault).List(api.ListOptions{
-		LabelSelector: selector,
-	})
-	if err != nil {
-		logger.Error("[GetServicesVisibility] ListServices failed:", err)
-		return response, err
-	}
-
-	servicesPublicTags, err := k.ConsulApi.GetServicesListWithPublicTagStatus(creds.ConsulEndpoint)
-	if err != nil {
-		logger.Error("[GetServicesVisibility]  ConsulApi.GetServicesListWithPublicTagStatus error", err)
-		return response, err
-	}
-
-	response = createServiceInfoList(org, space, k.Domain, services.Items, servicesPublicTags)
-	return response, nil
+	return serviceList.Items, nil
 }
 
 func (k *K8Fabricator) GetServices(creds K8sClusterCredential, org string) ([]api.Service, error) {
@@ -414,51 +369,6 @@ func (k *K8Fabricator) GetServices(creds K8sClusterCredential, org string) ([]ap
 	return serviceList.Items, nil
 }
 
-func createServiceInfoList(org, space, domain string, services []api.Service, servicesPublicTags map[string]bool) []K8sServiceInfo {
-	result := []K8sServiceInfo{}
-	for _, service := range services {
-		svc := K8sServiceInfo{
-			ServiceId: service.ObjectMeta.Labels["service_id"],
-			Org:       org,
-			Space:     space,
-			Name:      service.ObjectMeta.Name,
-			TapPublic: readTapPublic(service.ObjectMeta.Name, servicesPublicTags),
-		}
-
-		for _, port := range service.Spec.Ports {
-			svc.Uri = append(svc.Uri, GetServiceExternalAddress(domain, port))
-		}
-
-		result = append(result, svc)
-	}
-	return result
-}
-
-func readTapPublic(serviceName string, servicesPublicTags map[string]bool) bool {
-	for k, v := range servicesPublicTags {
-		if strings.Contains(k, serviceName) {
-			return v
-		}
-	}
-	return false
-}
-
-func GetServiceExternalAddress(domain string, port api.ServicePort) string {
-	return strings.ToLower(string(port.Protocol)) + "." + domain + ":" + strconv.Itoa(int(port.NodePort))
-}
-
-func GetServiceInternalHost(port api.ServicePort, service api.Service) string {
-	return GetConsulServiceName(port, service) + ".service.consul"
-}
-
-func GetConsulServiceName(port api.ServicePort, service api.Service) string {
-	portName := ""
-	if port.Name != "" {
-		portName = "-" + port.Name
-	}
-	return service.ObjectMeta.Name + portName
-}
-
 func (k *K8Fabricator) GetQuota(creds K8sClusterCredential, space string) (*api.ResourceQuotaList, error) {
 	c, err := k.KubernetesClient.GetNewClient(creds)
 	if err != nil {
@@ -466,57 +376,6 @@ func (k *K8Fabricator) GetQuota(creds K8sClusterCredential, space string) (*api.
 	}
 
 	return c.ResourceQuotas(api.NamespaceDefault).List(api.ListOptions{})
-}
-
-func (k *K8Fabricator) SetServicePublicVisibilityByServiceId(creds K8sClusterCredential, org, space, service_id string, shouldBePublic bool) ([]K8sServiceInfo, error) {
-	logger.Info("[SetServicePublicVisibilityByServiceId] orgId, serviceId:", org, service_id)
-	response := []K8sServiceInfo{}
-	consulData := []consul.ConsulServiceParams{}
-
-	c, selector, err := k.getKubernetesClientWithServiceIdSelector(creds, service_id)
-	if err != nil {
-		return response, err
-	}
-
-	services, err := c.Services(api.NamespaceDefault).List(api.ListOptions{
-		LabelSelector: selector,
-	})
-	if err != nil {
-		logger.Error("[SetServicePublicVisibilityByServiceId] List services failed:", err)
-		return []K8sServiceInfo{}, err
-	}
-
-	for _, service := range services.Items {
-		svc := K8sServiceInfo{
-			ServiceId: service_id,
-			Org:       org,
-			Space:     space,
-			Name:      service.ObjectMeta.Name,
-			TapPublic: shouldBePublic,
-			Uri:       []string{},
-		}
-
-		for _, port := range service.Spec.Ports {
-			if port.Protocol != api.ProtocolUDP {
-				param := consul.ConsulServiceParams{
-					Name:     GetConsulServiceName(port, service),
-					IsPublic: shouldBePublic,
-					Port:     port.NodePort,
-				}
-				consulData = append(consulData, param)
-
-				svc.Uri = append(svc.Uri, GetServiceExternalAddress(k.Domain, port))
-			}
-		}
-
-		err := k.ConsulApi.UpdateServiceTag(consulData, creds.ConsulEndpoint)
-		if err != nil {
-			logger.Error("[SetServicePublicVisibilityByServiceId] Consul UpdateServiceTag failed:", err)
-			return response, err
-		}
-		response = append(response, svc)
-	}
-	return response, nil
 }
 
 func (k *K8Fabricator) GetClusterWorkers(creds K8sClusterCredential) ([]string, error) {
@@ -617,47 +476,6 @@ type ServiceCredential struct {
 	Name  string
 	Host  string
 	Ports []api.ServicePort
-}
-
-func (k *K8Fabricator) GetServiceCredentials(creds K8sClusterCredential, space, service_id string) ([]ServiceCredential, error) {
-	logger.Info("[GetServiceCredentials] serviceId:", service_id)
-	result := []ServiceCredential{}
-
-	c, selector, err := k.getKubernetesClientWithServiceIdSelector(creds, service_id)
-	if err != nil {
-		return result, err
-	}
-
-	svcs, err := c.Services(api.NamespaceDefault).List(api.ListOptions{
-		LabelSelector: selector,
-	})
-	if err != nil {
-		return result, err
-	}
-	if len(svcs.Items) < 1 {
-		return result, errors.New("No services associated with the serviceId: " + service_id)
-	}
-
-	for _, svc := range svcs.Items {
-		svcCred := ServiceCredential{}
-		svcCred.Name = svc.Name
-		svcCred.Host = GetServiceInternalHostByFirstTCPPort(svc)
-
-		for _, p := range svc.Spec.Ports {
-			svcCred.Ports = append(svcCred.Ports, p)
-		}
-		result = append(result, svcCred)
-	}
-	return result, nil
-}
-
-func GetServiceInternalHostByFirstTCPPort(service api.Service) string {
-	for _, port := range service.Spec.Ports {
-		if port.Protocol == api.ProtocolTCP {
-			return GetServiceInternalHost(port, service)
-		}
-	}
-	return ""
 }
 
 func (k *K8Fabricator) GetSecret(creds K8sClusterCredential, key string) (*api.Secret, error) {

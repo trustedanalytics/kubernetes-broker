@@ -8,7 +8,7 @@ This is example of environments returned by binded app:
 ```json
 {
   "VCAP_SERVICES": {
-    "k-mysql56-clustered": [
+    "mysql56-multinode": [
       {
         "credentials": {
           "dbname": "17tWMJiPwa",
@@ -45,7 +45,7 @@ This is example of environments returned by binded app:
             }
           ]
         },
-        "label": "k-mysql56-clustered",
+        "label": "mysql56-multinode",
         "name": "test-service-mysql",
         "plan": "simple",
         "tags": [

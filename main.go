@@ -27,6 +27,7 @@ import (
 	"github.com/gocraft/web"
 
 	"github.com/trustedanalytics/kubernetes-broker/catalog"
+	"github.com/trustedanalytics/kubernetes-broker/consul"
 	"github.com/trustedanalytics/kubernetes-broker/k8s"
 	"github.com/trustedanalytics/kubernetes-broker/logger"
 	"github.com/trustedanalytics/kubernetes-broker/state"
@@ -97,13 +98,14 @@ func main() {
 }
 
 func initServices(cfApp *cfenv.App) {
+	brokerConfig = &BrokerConfig{}
+
 	serviceDomain := "DOMAIN_NOT_SET"
 	if len(cfApp.ApplicationURIs) > 0 {
 		serviceDomain = cfApp.ApplicationURIs[0]
 		serviceDomain = strings.TrimPrefix(serviceDomain, "kubernetes-broker.")
 	}
-
-	brokerConfig = &BrokerConfig{}
+	brokerConfig.Domain = serviceDomain
 
 	sso, err := cfApp.Services.WithName("sso")
 	if err != nil {
@@ -133,7 +135,8 @@ func initServices(cfApp *cfenv.App) {
 	)
 
 	brokerConfig.StateService = &state.StateMemoryService{}
-	brokerConfig.KubernetesApi = k8s.NewK8Fabricator(serviceDomain)
+	brokerConfig.KubernetesApi = k8s.NewK8Fabricator()
+	brokerConfig.ConsulApi = &consul.ConsulConnector{}
 
 	waitBeforeNextPVCheckSec, err := strconv.Atoi(cfenv.CurrentEnv()["WAIT_BEFORE_NEXT_PV_CHECK_SEC"])
 	if err != nil {

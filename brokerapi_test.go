@@ -35,6 +35,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 
 	"github.com/trustedanalytics/kubernetes-broker/catalog"
+	"github.com/trustedanalytics/kubernetes-broker/consul"
 	"github.com/trustedanalytics/kubernetes-broker/k8s"
 	"github.com/trustedanalytics/kubernetes-broker/state"
 	tst "github.com/trustedanalytics/kubernetes-broker/test"
@@ -56,8 +57,8 @@ var testCatalogPath = tst.GetTestCatalogPath()
 var testError error = errors.New("New Errror")
 var testCreds k8s.K8sClusterCredential = k8s.K8sClusterCredential{tst.TestOrgHost, tst.TestOrgHost, "", "", ""}
 
-func prepareMocksAndRouter(t *testing.T) (r *web.Router, mockCloudAPi *MockCloudApi,
-	mockKubernetesApi *k8s.MockKubernetesApi, mockStateService *state.MockStateService, mockCreatorConnector *k8s.MockK8sCreatorRest) {
+func prepareMocksAndRouter(t *testing.T) (r *web.Router, mockCloudAPi *MockCloudApi, mockKubernetesApi *k8s.MockKubernetesApi,
+	mockStateService *state.MockStateService, mockCreatorConnector *k8s.MockK8sCreatorRest, consulMockService *consul.MockConsulService) {
 
 	// setup Catalog for example test files
 	catalog.CatalogPath = testCatalogPath
@@ -68,12 +69,14 @@ func prepareMocksAndRouter(t *testing.T) (r *web.Router, mockCloudAPi *MockCloud
 	mockKubernetesApi = k8s.NewMockKubernetesApi(mockCtrl)
 	mockStateService = state.NewMockStateService(mockCtrl)
 	mockCreatorConnector = k8s.NewMockK8sCreatorRest(mockCtrl)
+	consulMockService = consul.NewMockConsulService(mockCtrl)
 
 	brokerConfig = &BrokerConfig{
 		CloudProvider:                         mockCloudAPi,
 		KubernetesApi:                         mockKubernetesApi,
 		StateService:                          mockStateService,
 		CreatorConnector:                      mockCreatorConnector,
+		ConsulApi:                             consulMockService,
 		WaitBeforeRemoveClusterIntervalSec:    time.Millisecond,
 		CheckPVbeforeRemoveClusterIntervalSec: time.Second,
 	}
@@ -88,7 +91,7 @@ func TestServiceInstancesPut(t *testing.T) {
 
 	instanceId := "4324324324324324324234234"
 
-	r, _, mockKubernetesApi, mockStateService, mockCreatorConnector := prepareMocksAndRouter(t)
+	r, _, mockKubernetesApi, mockStateService, mockCreatorConnector, _ := prepareMocksAndRouter(t)
 	r.Put(URLserviceInstanceIdPath, (*Context).ServiceInstancesPut)
 
 	Convey("Test ServiceInstancesPut", t, func() {
@@ -175,7 +178,7 @@ func TestServiceInstancesPut(t *testing.T) {
 }
 
 func TestGetQuota(t *testing.T) {
-	r, _, mockKubernetesApi, mockStateService, mockCreatorConnector := prepareMocksAndRouter(t)
+	r, _, mockKubernetesApi, mockStateService, mockCreatorConnector, _ := prepareMocksAndRouter(t)
 	r.Get(URLquotaPath, (*Context).GetQuota)
 
 	Convey("Test GetQuota", t, func() {
@@ -216,7 +219,7 @@ func TestGetQuota(t *testing.T) {
 }
 
 func TestGetCatalog(t *testing.T) {
-	r, _, _, _, _ := prepareMocksAndRouter(t)
+	r, _, _, _, _, _ := prepareMocksAndRouter(t)
 	r.Get(URLcatalogPath, (*Context).Catalog)
 
 	Convey("Test GetCatalog", t, func() {
@@ -228,7 +231,7 @@ func TestGetCatalog(t *testing.T) {
 }
 
 func TestGetServiceDetails(t *testing.T) {
-	r, _, _, _, _ := prepareMocksAndRouter(t)
+	r, _, _, _, _, _ := prepareMocksAndRouter(t)
 	r.Get(URLserviceDetailsPath, (*Context).GetServiceDetails)
 
 	Convey("Test GetServiceDetails", t, func() {
@@ -248,7 +251,7 @@ func TestServiceInstancesGetLastOperation(t *testing.T) {
 	testId := "1223"
 	requestPath := URLserviceInstancePath + testId + "/last_operation"
 
-	r, mockCloudAPi, mockKubernetesApi, mockStateService, mockCreatorConnector := prepareMocksAndRouter(t)
+	r, mockCloudAPi, mockKubernetesApi, mockStateService, mockCreatorConnector, _ := prepareMocksAndRouter(t)
 	r.Get(URLlastOperationPath, (*Context).ServiceInstancesGetLastOperation)
 
 	Convey("Test ServiceInstancesGetLastOperation", t, func() {
@@ -297,7 +300,7 @@ func TestServiceInstancesGetLastOperation(t *testing.T) {
 func TestServiceInstancesDelete(t *testing.T) {
 	testId := "1223"
 
-	r, mockCloudAPi, mockKubernetesApi, _, mockCreatorConnector := prepareMocksAndRouter(t)
+	r, mockCloudAPi, mockKubernetesApi, _, mockCreatorConnector, _ := prepareMocksAndRouter(t)
 	r.Delete(URLserviceInstanceIdPath, (*Context).ServiceInstancesDelete)
 
 	Convey("Test ServiceInstancesDelete", t, func() {
@@ -383,7 +386,7 @@ func TestServiceBindingsPut(t *testing.T) {
 	testInstanceId, testBindingId := "instanceId", "bindId"
 	requestPath := URLserviceInstancePath + testInstanceId + "/service_bindings/" + testBindingId
 
-	r, mockCloudAPi, mockKubernetesApi, _, mockCreatorConnector := prepareMocksAndRouter(t)
+	r, mockCloudAPi, mockKubernetesApi, _, mockCreatorConnector, _ := prepareMocksAndRouter(t)
 	r.Put(URLserviceBindingsPath, (*Context).ServiceBindingsPut)
 
 	//http://stackoverflow.com/questions/10535743/address-of-a-temporary-in-go
@@ -402,8 +405,7 @@ func TestServiceBindingsPut(t *testing.T) {
 					Return([]k8s.PodEnvs{
 						{Containers: []k8s.ContainerSimple{{Envs: map[string]string{"foo": "bar"}}}},
 					}, nil),
-				mockKubernetesApi.EXPECT().GetServiceCredentials(testCreds, tst.TestSpaceGuid, testInstanceId).
-					Return([]k8s.ServiceCredential{}, nil),
+				mockKubernetesApi.EXPECT().GetService(testCreds, tst.TestSpaceGuid, testInstanceId).Return([]api.Service{{}}, nil),
 			)
 
 			putRequestBody := ServiceBindingsPutRequest{ServiceId: &tmpTestServiceId, PlanId: &tmpTestPlanId}
@@ -455,8 +457,8 @@ func TestServiceBindingsPut(t *testing.T) {
 				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
 				mockKubernetesApi.EXPECT().GetAllPodsEnvsByServiceId(testCreds, tst.TestSpaceGuid, testInstanceId).
 					Return([]k8s.PodEnvs{}, nil),
-				mockKubernetesApi.EXPECT().GetServiceCredentials(testCreds, tst.TestSpaceGuid, testInstanceId).
-					Return([]k8s.ServiceCredential{}, errors.New("No Port")),
+				mockKubernetesApi.EXPECT().GetService(testCreds, tst.TestSpaceGuid, testInstanceId).
+					Return([]api.Service{}, errors.New("No Port")),
 			)
 
 			putRequestBody := ServiceBindingsPutRequest{ServiceId: &tmpTestServiceId, PlanId: &tmpTestPlanId}
@@ -468,7 +470,7 @@ func TestServiceBindingsPut(t *testing.T) {
 
 func TestServiceBindingsDelete(t *testing.T) {
 	requestPath := URLserviceInstancePath + "testBinding" + "/service_bindings/" + "testBinding"
-	r, _, _, _, _ := prepareMocksAndRouter(t)
+	r, _, _, _, _, _ := prepareMocksAndRouter(t)
 	r.Delete(URLserviceBindingsPath, (*Context).ServiceBindingsDelete)
 
 	Convey("Test ServiceBindingsDelete", t, func() {
@@ -480,35 +482,47 @@ func TestServiceBindingsDelete(t *testing.T) {
 }
 
 func TestGetService(t *testing.T) {
-	r, _, mockKubernetesApi, mockStateService, mockCreatorConnector := prepareMocksAndRouter(t)
+	r, _, mockKubernetesApi, _, mockCreatorConnector, consulMockService := prepareMocksAndRouter(t)
 	r.Get(URLservicePath, (*Context).GetService)
 
 	requestPath := "/rest/kubernetes/" + tst.TestOrgGuid + "/" + tst.TestSpaceGuid + "/service/" +
 		tst.TestServiceId
 
+	testName := "name21"
+	annotations := map[string]string{
+		"tap-public": "true",
+	}
+
+	serviceResponse := []api.Service{{
+		ObjectMeta: api.ObjectMeta{
+			Name:        testName,
+			Labels:      map[string]string{},
+			Annotations: annotations,
+		},
+	}}
+
 	Convey("Test GetService", t, func() {
 		Convey("Should returns succeeded response", func() {
-			response := []k8s.K8sServiceInfo{{Name: "testName"}}
 			mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil)
-			mockKubernetesApi.EXPECT().GetServiceVisibility(testCreds, tst.TestOrgGuid, tst.TestSpaceGuid, tst.TestServiceId).
-				Return(response, nil)
+			mockKubernetesApi.EXPECT().GetService(testCreds, tst.TestOrgGuid, tst.TestServiceId).
+				Return(serviceResponse, nil)
+			consulMockService.EXPECT().GetServicesListWithPublicTagStatus(gomock.Any()).Return(map[string]bool{testName: true}, nil)
 
 			rr := sendRequest("GET", requestPath, nil, r)
 			assertResponse(rr, "", 202)
 
-			serviceResponse := []k8s.K8sServiceInfo{}
-			err := readJson(rr, &serviceResponse)
+			reqResponse := []k8s.K8sServiceInfo{}
+			err := readJson(rr, &reqResponse)
 
 			So(err, ShouldBeNil)
-			So(len(serviceResponse), ShouldEqual, 1)
-			So(serviceResponse, ShouldResemble, response)
+			So(len(reqResponse), ShouldEqual, 1)
+			So(reqResponse[0].Name, ShouldEqual, testName)
+			So(reqResponse[0].TapPublic, ShouldEqual, true)
 		})
 
 		Convey("Should returns failed response", func() {
 			mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil)
-			mockKubernetesApi.EXPECT().GetServiceVisibility(testCreds, tst.TestOrgGuid,
-				tst.TestSpaceGuid, tst.TestServiceId).Return([]k8s.K8sServiceInfo{}, testError)
-			mockStateService.EXPECT().ReportProgress(gomock.Any(), "FAILED", gomock.Any())
+			mockKubernetesApi.EXPECT().GetService(testCreds, tst.TestOrgGuid, tst.TestServiceId).Return(serviceResponse, testError)
 			rr := sendRequest("GET", requestPath, nil, r)
 
 			assertResponse(rr, "", 500)
@@ -516,7 +530,6 @@ func TestGetService(t *testing.T) {
 
 		Convey("Should returns error when GetCluster cannot parse unexpected json response", func() {
 			mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, testError)
-			mockStateService.EXPECT().ReportProgress(gomock.Any(), "FAILED", gomock.Any())
 			rr := sendRequest("GET", requestPath, nil, r)
 			assertResponse(rr, "", 500)
 		})
@@ -524,45 +537,52 @@ func TestGetService(t *testing.T) {
 }
 
 func TestGetServices(t *testing.T) {
-	r, _, mockKubernetesApi, mockStateService, mockCreatorConnector := prepareMocksAndRouter(t)
+	r, _, mockKubernetesApi, _, mockCreatorConnector, consulMockService := prepareMocksAndRouter(t)
 	r.Get(URLservicesPath, (*Context).GetServices)
 
 	requestPath := "/rest/kubernetes/" + tst.TestOrgGuid + "/" + tst.TestSpaceGuid + "/services"
 
+	testName := "name21"
+	serviceResponse := []api.Service{{
+		ObjectMeta: api.ObjectMeta{
+			Name:   testName,
+			Labels: map[string]string{},
+		},
+	}}
+
 	Convey("Test GetServices", t, func() {
 		Convey("Should returns succeeded response", func() {
-			response := []k8s.K8sServiceInfo{{Name: "testName"}}
 			mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil)
-			mockKubernetesApi.EXPECT().GetServicesVisibility(testCreds, tst.TestOrgGuid, tst.TestSpaceGuid).
-				Return(response, nil)
+			mockKubernetesApi.EXPECT().GetServices(testCreds, tst.TestOrgGuid).Return(serviceResponse, nil)
+			consulMockService.EXPECT().GetServicesListWithPublicTagStatus(gomock.Any()).Return(
+				map[string]bool{testName: true}, nil,
+			)
 
 			rr := sendRequest("GET", requestPath, nil, r)
 			assertResponse(rr, "", 202)
 
-			serviceRespone := []k8s.K8sServiceInfo{}
-			err := readJson(rr, &serviceRespone)
+			reqResponse := []k8s.K8sServiceInfo{}
+			err := readJson(rr, &reqResponse)
 
 			So(err, ShouldBeNil)
-			So(len(serviceRespone), ShouldEqual, 1)
-			So(serviceRespone, ShouldResemble, response)
+			So(len(reqResponse), ShouldEqual, 1)
+			So(reqResponse[0].Name, ShouldEqual, testName)
+			So(reqResponse[0].TapPublic, ShouldEqual, true)
 		})
 
 		Convey("Should returns failed response", func() {
 			mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil)
-			mockKubernetesApi.EXPECT().GetServicesVisibility(testCreds, tst.TestOrgGuid, tst.TestSpaceGuid).
-				Return([]k8s.K8sServiceInfo{}, testError)
-			mockStateService.EXPECT().ReportProgress(gomock.Any(), "FAILED", gomock.Any())
+			mockKubernetesApi.EXPECT().GetServices(testCreds, tst.TestOrgGuid).Return(serviceResponse, testError)
 			rr := sendRequest("GET", requestPath, nil, r)
 
-			assertResponse(rr, "", 202)
+			assertResponse(rr, "", 500)
 		})
 
 		Convey("Should returns error when incorete request body", func() {
 			mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, testError)
-			mockStateService.EXPECT().ReportProgress(gomock.Any(), "FAILED", gomock.Any())
 
 			rr := sendRequest("GET", requestPath, nil, r)
-			assertResponse(rr, "", 202)
+			assertResponse(rr, "", 500)
 		})
 	})
 }
@@ -570,43 +590,54 @@ func TestGetServices(t *testing.T) {
 func TestSetServiceVisibility(t *testing.T) {
 	requestPath := "/v2/services/"
 
-	r, _, mockKubernetesApi, mockStateService, mockCreatorConnector := prepareMocksAndRouter(t)
+	r, _, mockKubernetesApi, _, mockCreatorConnector, consulMockService := prepareMocksAndRouter(t)
 	r.Post(requestPath, (*Context).SetServiceVisibility)
 
 	request := ServiceInstancesPutRequest{ServiceId: tst.TestServiceId,
 		OrganizationGuid: tst.TestOrgGuid, SpaceGuid: tst.TestSpaceGuid, Visibility: true}
+	testName := "name21"
+	annotations := map[string]string{
+		"tap-public": "true",
+	}
+	serviceResponse := []api.Service{{
+		ObjectMeta: api.ObjectMeta{
+			Name:        testName,
+			Labels:      map[string]string{},
+			Annotations: annotations,
+		},
+		Spec: api.ServiceSpec{
+			Ports: []api.ServicePort{{Protocol: api.ProtocolTCP, Port: 5555}},
+		},
+	}}
 
 	Convey("Test SetServiceVisibility", t, func() {
 		Convey("Should returns succeeded response", func() {
-			response := []k8s.K8sServiceInfo{{Name: "testName"}}
 			mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil)
-			mockKubernetesApi.EXPECT().SetServicePublicVisibilityByServiceId(testCreds, request.OrganizationGuid,
-				request.SpaceGuid, request.ServiceId, request.Visibility).Return(response, nil)
+			mockKubernetesApi.EXPECT().GetService(testCreds, tst.TestOrgGuid, tst.TestServiceId).
+				Return(serviceResponse, nil)
+			consulMockService.EXPECT().UpdateServiceTag(gomock.Any(), gomock.Any()).Return(nil)
 
 			rr := sendRequest("POST", requestPath, marshallToJson(t, request), r)
 			assertResponse(rr, "", 202)
 
-			serviceRespone := []k8s.K8sServiceInfo{}
-			err := readJson(rr, &serviceRespone)
+			reqResponse := []k8s.K8sServiceInfo{}
+			err := readJson(rr, &reqResponse)
 
 			So(err, ShouldBeNil)
-			So(len(serviceRespone), ShouldEqual, 1)
-			So(serviceRespone, ShouldResemble, response)
+			So(len(reqResponse), ShouldEqual, 1)
+			So(reqResponse[0].Name, ShouldEqual, testName)
+			So(reqResponse[0].TapPublic, ShouldEqual, true)
 		})
 
 		Convey("Should returns failed response", func() {
 			mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil)
-			mockKubernetesApi.EXPECT().SetServicePublicVisibilityByServiceId(testCreds, request.OrganizationGuid, request.SpaceGuid,
-				request.ServiceId, request.Visibility).Return([]k8s.K8sServiceInfo{}, testError)
-			mockStateService.EXPECT().ReportProgress(gomock.Any(), "FAILED", gomock.Any())
+			mockKubernetesApi.EXPECT().GetService(testCreds, tst.TestOrgGuid, tst.TestServiceId).Return(serviceResponse, testError)
 			rr := sendRequest("POST", requestPath, marshallToJson(t, request), r)
 
 			assertResponse(rr, "", 500)
 		})
 
 		Convey("Should returns error when incorete request body", func() {
-			mockStateService.EXPECT().ReportProgress(gomock.Any(), "FAILED", gomock.Any())
-
 			rr := sendRequest("POST", requestPath, []byte("{WrongJson]"), r)
 			assertResponse(rr, "", 500)
 		})
@@ -614,7 +645,7 @@ func TestSetServiceVisibility(t *testing.T) {
 }
 
 func TestGetSecret(t *testing.T) {
-	r, _, mockKubernetesApi, _, mockCreatorConnector := prepareMocksAndRouter(t)
+	r, _, mockKubernetesApi, _, mockCreatorConnector, _ := prepareMocksAndRouter(t)
 	r.Get(URLsecretPath, (*Context).GetSecret)
 
 	requestPath := "/rest/kubernetes/" + tst.TestOrgGuid + "/secret/" + tst.TestSecretName
@@ -647,7 +678,7 @@ func TestGetSecret(t *testing.T) {
 }
 
 func TestCreateSecret(t *testing.T) {
-	r, _, mockKubernetesApi, _, mockCreatorConnector := prepareMocksAndRouter(t)
+	r, _, mockKubernetesApi, _, mockCreatorConnector, _ := prepareMocksAndRouter(t)
 	r.Post(URLsecretPath, (*Context).CreateSecret)
 
 	requestPath := "/rest/kubernetes/" + tst.TestOrgGuid + "/secret/" + tst.TestSecretName
@@ -674,7 +705,7 @@ func TestCreateSecret(t *testing.T) {
 }
 
 func TestUpdateSecret(t *testing.T) {
-	r, _, mockKubernetesApi, _, mockCreatorConnector := prepareMocksAndRouter(t)
+	r, _, mockKubernetesApi, _, mockCreatorConnector, _ := prepareMocksAndRouter(t)
 	r.Put(URLsecretPath, (*Context).UpdateSecret)
 
 	requestPath := "/rest/kubernetes/" + tst.TestOrgGuid + "/secret/" + tst.TestSecretName
@@ -701,7 +732,7 @@ func TestUpdateSecret(t *testing.T) {
 }
 
 func TestDeleteSecret(t *testing.T) {
-	r, _, mockKubernetesApi, _, mockCreatorConnector := prepareMocksAndRouter(t)
+	r, _, mockKubernetesApi, _, mockCreatorConnector, _ := prepareMocksAndRouter(t)
 	r.Delete(URLsecretPath, (*Context).DeleteSecret)
 
 	requestPath := "/rest/kubernetes/" + tst.TestOrgGuid + "/secret/" + tst.TestSecretName

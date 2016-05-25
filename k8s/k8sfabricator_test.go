@@ -16,7 +16,6 @@
 package k8s
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -26,21 +25,19 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/trustedanalytics/kubernetes-broker/catalog"
-	"github.com/trustedanalytics/kubernetes-broker/consul"
 	"github.com/trustedanalytics/kubernetes-broker/state"
 	tst "github.com/trustedanalytics/kubernetes-broker/test"
 )
 
 func prepareMocksAndRouter(t *testing.T) (fabricator *K8Fabricator, mockStateService *state.MockStateService,
-	mockKubernetesRest *KubernetesTestCreator, consulMockService *consul.MockConsulService) {
+	mockKubernetesRest *KubernetesTestCreator) {
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	consulMockService = consul.NewMockConsulService(mockCtrl)
 	mockStateService = state.NewMockStateService(mockCtrl)
 
 	mockKubernetesRest = &KubernetesTestCreator{}
-	fabricator = &K8Fabricator{mockKubernetesRest, consulMockService, domain}
+	fabricator = &K8Fabricator{mockKubernetesRest}
 	return
 }
 
@@ -51,10 +48,9 @@ const space = "spaceTest"
 const domain = "domainTest"
 
 var testCreds K8sClusterCredential = K8sClusterCredential{"", orgHost, "", "", ""}
-var errResponse = errors.New("testError")
 
 func TestFabricateService(t *testing.T) {
-	fabricator, mockStateService, mockKubernetesRest, _ := prepareMocksAndRouter(t)
+	fabricator, mockStateService, mockKubernetesRest := prepareMocksAndRouter(t)
 
 	blueprint := &catalog.KubernetesComponent{
 		ReplicationControllers: []*api.ReplicationController{&api.ReplicationController{Spec: api.ReplicationControllerSpec{
@@ -185,7 +181,7 @@ func TestFabricateService(t *testing.T) {
 }
 
 func TestCheckKubernetesServiceHealthByServiceInstanceId(t *testing.T) {
-	fabricator, _, mockKubernetesRest, _ := prepareMocksAndRouter(t)
+	fabricator, _, mockKubernetesRest := prepareMocksAndRouter(t)
 
 	Convey("Test CheckKubernetesServiceHealthByServiceInstanceId", t, func() {
 		Convey("Should returns proper response", func() {
@@ -209,7 +205,7 @@ func TestCheckKubernetesServiceHealthByServiceInstanceId(t *testing.T) {
 }
 
 func TestDeleteAllByServiceId(t *testing.T) {
-	fabricator, _, mockKubernetesRest, _ := prepareMocksAndRouter(t)
+	fabricator, _, mockKubernetesRest := prepareMocksAndRouter(t)
 
 	Convey("Test DeleteAllByServiceId", t, func() {
 		Convey("Should returns proper response", func() {
@@ -250,7 +246,7 @@ func TestDeleteAllByServiceId(t *testing.T) {
 }
 
 func TestGetAllPodsEnvsByServiceId(t *testing.T) {
-	fabricator, _, mockKubernetesRest, _ := prepareMocksAndRouter(t)
+	fabricator, _, mockKubernetesRest := prepareMocksAndRouter(t)
 
 	Convey("Test GetAllPodsEnvsByServiceId", t, func() {
 		Convey("Should returns proper response", func() {
@@ -294,193 +290,8 @@ func TestGetAllPodsEnvsByServiceId(t *testing.T) {
 	})
 }
 
-func TestGetServiceCredentials(t *testing.T) {
-	fabricator, _, mockKubernetesRest, _ := prepareMocksAndRouter(t)
-
-	Convey("Test GetServiceCredentials", t, func() {
-		Convey("Should returns proper response", func() {
-			port := api.ServicePort{Protocol: api.ProtocolTCP, Port: 5555}
-
-			serviceResponse := &api.ServiceList{
-				Items: []api.Service{{
-					Spec: api.ServiceSpec{
-						Ports: []api.ServicePort{port},
-					},
-				}},
-			}
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction(serviceResponse)
-
-			result, err := fabricator.GetServiceCredentials(testCreds, space, serviceId)
-			So(err, ShouldBeNil)
-			So(result, ShouldNotBeEmpty)
-			So(result, ShouldHaveLength, 1)
-			So(result[0].Ports[0], ShouldResemble, port)
-		})
-
-		Convey("Should returns error on List Services fail", func() {
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction(getErrorResponseForSpecificResource("ServiceList"))
-
-			_, err := fabricator.GetServiceCredentials(testCreds, space, serviceId)
-			So(err, ShouldNotBeNil)
-		})
-
-		Convey("Should returns error when no items in respone", func() {
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction()
-
-			_, err := fabricator.GetServiceCredentials(testCreds, space, serviceId)
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "No services associated with the serviceId: "+serviceId)
-		})
-	})
-}
-
-func TestGetServiceVisibility(t *testing.T) {
-	fabricator, _, mockKubernetesRest, consulMockService := prepareMocksAndRouter(t)
-	testName := "name21"
-
-	annotations := map[string]string{
-		"tap-public": "true",
-	}
-
-	serviceResponse := &api.ServiceList{
-		Items: []api.Service{{
-			ObjectMeta: api.ObjectMeta{
-				Name:        testName,
-				Labels:      map[string]string{},
-				Annotations: annotations,
-			},
-		}},
-	}
-
-	Convey("Test GetServiceVisibility", t, func() {
-		Convey("Should returns proper response", func() {
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction(serviceResponse)
-			consulMockService.EXPECT().GetServicesListWithPublicTagStatus(gomock.Any()).Return(
-				map[string]bool{testName: true}, nil,
-			)
-
-			result, err := fabricator.GetServiceVisibility(testCreds, org, space, serviceId)
-			So(err, ShouldBeNil)
-			So(len(result), ShouldEqual, 1)
-			So(result[0].Name, ShouldEqual, testName)
-			So(result[0].TapPublic, ShouldBeTrue)
-		})
-
-		Convey("Should returns error on List services fail", func() {
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction(getErrorResponseForSpecificResource("ServiceList"))
-
-			_, err := fabricator.GetServiceVisibility(testCreds, org, space, serviceId)
-			So(err, ShouldNotBeNil)
-		})
-
-		Convey("Should returns error on GetServicesListWithPublicTagStatus fail", func() {
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction(serviceResponse)
-			consulMockService.EXPECT().GetServicesListWithPublicTagStatus(gomock.Any()).Return(map[string]bool{}, errResponse)
-
-			_, err := fabricator.GetServiceVisibility(testCreds, org, space, serviceId)
-			So(err, ShouldNotBeNil)
-			So(err, ShouldEqual, errResponse)
-		})
-	})
-}
-
-func TestSetServicePublicVisibilityByServiceId(t *testing.T) {
-	fabricator, _, mockKubernetesRest, consulMockService := prepareMocksAndRouter(t)
-	testName := "name21"
-	annotations := map[string]string{
-		"tap-public": "true",
-	}
-
-	serviceResponse := &api.ServiceList{
-		Items: []api.Service{{
-			ObjectMeta: api.ObjectMeta{
-				Name:        testName,
-				Labels:      map[string]string{},
-				Annotations: annotations,
-			},
-			Spec: api.ServiceSpec{
-				Ports: []api.ServicePort{{Protocol: api.ProtocolTCP, Port: 5555}},
-			},
-		}},
-	}
-
-	Convey("Test SetServicePublicVisibilityByServiceId", t, func() {
-		Convey("Should returns proper response", func() {
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction(serviceResponse)
-			consulMockService.EXPECT().UpdateServiceTag(gomock.Any(), gomock.Any()).Return(nil)
-
-			result, err := fabricator.SetServicePublicVisibilityByServiceId(testCreds, org, space, serviceId, true)
-			So(err, ShouldBeNil)
-			So(len(result), ShouldEqual, 1)
-			So(result[0].Name, ShouldEqual, testName)
-			So(result[0].TapPublic, ShouldBeTrue)
-		})
-
-		Convey("Should returns error on List services fail", func() {
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction(getErrorResponseForSpecificResource("ServiceList"))
-
-			_, err := fabricator.SetServicePublicVisibilityByServiceId(testCreds, org, space, serviceId, false)
-			So(err, ShouldNotBeNil)
-		})
-
-		Convey("Should returns error on Consul UpdateServiceTag fail", func() {
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction(serviceResponse)
-			consulMockService.EXPECT().UpdateServiceTag(gomock.Any(), gomock.Any()).Return(errResponse)
-
-			_, err := fabricator.SetServicePublicVisibilityByServiceId(testCreds, org, space, serviceId, false)
-			So(err, ShouldNotBeNil)
-			So(err, ShouldEqual, errResponse)
-		})
-	})
-}
-
-func TestGetServicesVisibility(t *testing.T) {
-	fabricator, _, mockKubernetesRest, consulMockService := prepareMocksAndRouter(t)
-	testName := "name21"
-
-	serviceResponse := &api.ServiceList{
-		Items: []api.Service{{
-			ObjectMeta: api.ObjectMeta{
-				Name:   testName,
-				Labels: map[string]string{},
-			},
-		}},
-	}
-
-	Convey("Test GetServicesVisibility", t, func() {
-		Convey("Should returns proper response", func() {
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction(serviceResponse)
-			consulMockService.EXPECT().GetServicesListWithPublicTagStatus(gomock.Any()).Return(
-				map[string]bool{testName: true}, nil,
-			)
-
-			result, err := fabricator.GetServicesVisibility(testCreds, org, space)
-			So(err, ShouldBeNil)
-			So(len(result), ShouldEqual, 1)
-			So(result[0].Name, ShouldEqual, testName)
-			So(result[0].TapPublic, ShouldBeTrue)
-		})
-
-		Convey("Should returns error on ListReplicationControllers fail", func() {
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction(getErrorResponseForSpecificResource("ServiceList"))
-
-			_, err := fabricator.GetServicesVisibility(testCreds, org, space)
-			So(err, ShouldNotBeNil)
-		})
-
-		Convey("Should returns error on GetServicesListWithPublicTagStatus fail", func() {
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction(serviceResponse)
-			consulMockService.EXPECT().GetServicesListWithPublicTagStatus(gomock.Any()).Return(map[string]bool{}, errResponse)
-
-			_, err := fabricator.GetServiceVisibility(testCreds, org, space, serviceId)
-			So(err, ShouldNotBeNil)
-			So(err, ShouldEqual, errResponse)
-		})
-	})
-}
-
 func TestGetSecret(t *testing.T) {
-	fabricator, _, mockKubernetesRest, _ := prepareMocksAndRouter(t)
+	fabricator, _, mockKubernetesRest := prepareMocksAndRouter(t)
 
 	secret := tst.GetTestSecret()
 
@@ -504,7 +315,7 @@ func TestGetSecret(t *testing.T) {
 }
 
 func TestCreateSecret(t *testing.T) {
-	fabricator, _, mockKubernetesRest, _ := prepareMocksAndRouter(t)
+	fabricator, _, mockKubernetesRest := prepareMocksAndRouter(t)
 
 	secret := tst.GetTestSecret()
 
@@ -526,7 +337,7 @@ func TestCreateSecret(t *testing.T) {
 }
 
 func TestUpdateSecret(t *testing.T) {
-	fabricator, _, mockKubernetesRest, _ := prepareMocksAndRouter(t)
+	fabricator, _, mockKubernetesRest := prepareMocksAndRouter(t)
 
 	secret := tst.GetTestSecret()
 
@@ -548,7 +359,7 @@ func TestUpdateSecret(t *testing.T) {
 }
 
 func TestDeleteSecret(t *testing.T) {
-	fabricator, _, mockKubernetesRest, _ := prepareMocksAndRouter(t)
+	fabricator, _, mockKubernetesRest := prepareMocksAndRouter(t)
 
 	secret := tst.GetTestSecret()
 

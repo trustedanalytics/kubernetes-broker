@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,6 +30,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 
 	"github.com/trustedanalytics/kubernetes-broker/catalog"
+	"github.com/trustedanalytics/kubernetes-broker/consul"
 	"github.com/trustedanalytics/kubernetes-broker/k8s"
 	"github.com/trustedanalytics/kubernetes-broker/state"
 )
@@ -36,10 +38,12 @@ import (
 type BrokerConfig struct {
 	CheckPVbeforeRemoveClusterIntervalSec time.Duration
 	WaitBeforeRemoveClusterIntervalSec    time.Duration
+	Domain                                string
 	CloudProvider                         CloudApi
 	StateService                          state.StateService
 	KubernetesApi                         k8s.KubernetesApi
 	CreatorConnector                      k8s.K8sCreatorRest
+	ConsulApi                             consul.ConsulService
 }
 
 var brokerConfig *BrokerConfig
@@ -190,8 +194,17 @@ func (c *Context) GetQuota(rw web.ResponseWriter, req *web.Request) {
 
 }
 
+type ServiceInfoResponse struct {
+	ServiceId string   `json:"serviceId"`
+	Org       string   `json:"org"`
+	Space     string   `json:"space"`
+	Name      string   `json:"name"`
+	TapPublic bool     `json:"tapPublic"`
+	Uri       []string `json:"uri"`
+}
+
 func (c *Context) GetService(rw web.ResponseWriter, req *web.Request) {
-	logger.Info("Fetching service")
+	logger.Info("Fetching service info")
 	org := req.PathParams["org_id"]
 	space := req.PathParams["space_id"]
 	service_id := req.PathParams["instance_id"]
@@ -202,40 +215,46 @@ func (c *Context) GetService(rw web.ResponseWriter, req *web.Request) {
 		return
 	}
 
-	services, err := brokerConfig.KubernetesApi.GetServiceVisibility(creds, org, space, service_id)
-
+	services, err := brokerConfig.KubernetesApi.GetService(creds, org, service_id)
 	if err != nil {
-		brokerConfig.StateService.ReportProgress("1", "FAILED", err)
 		Respond500(rw, err)
 		return
 	}
 
-	WriteJson(rw, services, http.StatusAccepted)
+	servicesPublicTags, err := brokerConfig.ConsulApi.GetServicesListWithPublicTagStatus(creds.ConsulEndpoint)
+	if err != nil {
+		Respond500(rw, err)
+	}
+
+	response := createServiceInfoList(org, space, services, servicesPublicTags)
+	WriteJson(rw, response, http.StatusAccepted)
 
 }
 
 func (c *Context) GetServices(rw web.ResponseWriter, req *web.Request) {
-	logger.Info("Fetching serice")
+	logger.Info("Fetching services info")
 	org := req.PathParams["org_id"]
 	space := req.PathParams["space_id"]
 
 	_, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
 	if err != nil {
-		//Respond500(rw, err)
-		WriteJson(rw, []interface{}{}, http.StatusAccepted)
+		Respond500(rw, err)
 		return
 	}
 
-	controllers, err := brokerConfig.KubernetesApi.GetServicesVisibility(creds, org, space)
+	services, err := brokerConfig.KubernetesApi.GetServices(creds, org)
 	if err != nil {
-		brokerConfig.StateService.ReportProgress("1", "FAILED", err)
-		//Respond500(rw, err)
-		WriteJson(rw, []interface{}{}, http.StatusAccepted)
+		Respond500(rw, err)
 		return
 	}
 
-	WriteJson(rw, controllers, http.StatusAccepted)
+	servicesPublicTags, err := brokerConfig.ConsulApi.GetServicesListWithPublicTagStatus(creds.ConsulEndpoint)
+	if err != nil {
+		Respond500(rw, err)
+	}
 
+	response := createServiceInfoList(org, space, services, servicesPublicTags)
+	WriteJson(rw, response, http.StatusAccepted)
 }
 
 func (c *Context) SetServiceVisibility(rw web.ResponseWriter, req *web.Request) {
@@ -243,7 +262,6 @@ func (c *Context) SetServiceVisibility(rw web.ResponseWriter, req *web.Request) 
 	logger.Info("Setting service visibility")
 	err := ReadJson(req, &req_json)
 	if err != nil {
-		brokerConfig.StateService.ReportProgress("1", "FAILED", err)
 		Respond500(rw, err)
 		return
 	}
@@ -254,15 +272,89 @@ func (c *Context) SetServiceVisibility(rw web.ResponseWriter, req *web.Request) 
 		return
 	}
 
-	replicationControllerItem, err := brokerConfig.KubernetesApi.SetServicePublicVisibilityByServiceId(creds, req_json.OrganizationGuid,
-		req_json.SpaceGuid, req_json.ServiceId, req_json.Visibility)
-
+	services, err := brokerConfig.KubernetesApi.GetService(creds, req_json.OrganizationGuid, req_json.ServiceId)
 	if err != nil {
-		brokerConfig.StateService.ReportProgress("1", "FAILED", err)
 		Respond500(rw, err)
 		return
 	}
-	WriteJson(rw, replicationControllerItem, http.StatusAccepted)
+
+	response := []ServiceInfoResponse{}
+	consulData := []consul.ConsulServiceParams{}
+	for _, service := range services {
+		svc := ServiceInfoResponse{
+			ServiceId: req_json.ServiceId,
+			Org:       req_json.OrganizationGuid,
+			Space:     req_json.SpaceGuid,
+			Name:      service.ObjectMeta.Name,
+			TapPublic: req_json.Visibility,
+			Uri:       []string{},
+		}
+
+		for _, port := range service.Spec.Ports {
+			if port.Protocol != api.ProtocolUDP {
+				param := consul.ConsulServiceParams{
+					Name:     getConsulServiceName(port, service),
+					IsPublic: req_json.Visibility,
+					Port:     port.NodePort,
+				}
+				consulData = append(consulData, param)
+				svc.Uri = append(svc.Uri, getServiceExternalAddress(port))
+			}
+		}
+
+		err := brokerConfig.ConsulApi.UpdateServiceTag(consulData, creds.ConsulEndpoint)
+		if err != nil {
+			Respond500(rw, err)
+			return
+		}
+		response = append(response, svc)
+	}
+	WriteJson(rw, response, http.StatusAccepted)
+}
+
+func createServiceInfoList(org, space string, services []api.Service, servicesPublicTags map[string]bool) []ServiceInfoResponse {
+	result := []ServiceInfoResponse{}
+	for _, service := range services {
+		svc := ServiceInfoResponse{
+			ServiceId: service.ObjectMeta.Labels["service_id"],
+			Org:       org,
+			Space:     space,
+			Name:      service.ObjectMeta.Name,
+			TapPublic: readTapPublic(service.ObjectMeta.Name, servicesPublicTags),
+		}
+
+		for _, port := range service.Spec.Ports {
+			svc.Uri = append(svc.Uri, getServiceExternalAddress(port))
+		}
+
+		result = append(result, svc)
+	}
+	return result
+}
+
+func readTapPublic(serviceName string, servicesPublicTags map[string]bool) bool {
+	for k, v := range servicesPublicTags {
+		if strings.Contains(k, serviceName) {
+			return v
+		}
+	}
+	return false
+}
+
+func getServiceExternalAddress(port api.ServicePort) string {
+	return strings.ToLower(string(port.Protocol)) + "." + brokerConfig.Domain + ":" + strconv.Itoa(int(port.NodePort))
+}
+
+func getServiceInternalHost(port api.ServicePort, service api.Service) string {
+	return getConsulServiceName(port, service) + ".service.consul"
+}
+
+func getConsulServiceName(port api.ServicePort, service api.Service) string {
+	portName := ""
+	if port.Name != "" {
+		portName = "-" + port.Name
+	}
+	return service.ObjectMeta.Name + portName
 }
 
 type ServiceInstancesGetLastOperationResponse struct {
@@ -458,7 +550,7 @@ func (c *Context) ServiceBindingsPut(rw web.ResponseWriter, req *web.Request) {
 		return
 	}
 
-	svcCreds, err := brokerConfig.KubernetesApi.GetServiceCredentials(creds, space, instance_id)
+	svcCreds, err := getServiceCredentials(creds, space, instance_id)
 	if err != nil {
 		Respond500(rw, err)
 		return
@@ -482,6 +574,46 @@ func (c *Context) ServiceBindingsPut(rw web.ResponseWriter, req *web.Request) {
 	rw.WriteHeader(http.StatusCreated)
 	rw.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(rw, "%s", ret)
+}
+
+type ServiceCredential struct {
+	Name  string
+	Host  string
+	Ports []api.ServicePort
+}
+
+func getServiceCredentials(creds k8s.K8sClusterCredential, org, serviceId string) ([]ServiceCredential, error) {
+	logger.Info("[GetServiceCredentials] serviceId:", serviceId)
+	result := []ServiceCredential{}
+
+	services, err := brokerConfig.KubernetesApi.GetService(creds, org, serviceId)
+	if err != nil {
+		return result, err
+	}
+	if len(services) < 1 {
+		return result, errors.New("No services associated with the serviceId: " + serviceId)
+	}
+
+	for _, svc := range services {
+		svcCred := ServiceCredential{}
+		svcCred.Name = svc.Name
+		svcCred.Host = getServiceInternalHostByFirstTCPPort(svc)
+
+		for _, p := range svc.Spec.Ports {
+			svcCred.Ports = append(svcCred.Ports, p)
+		}
+		result = append(result, svcCred)
+	}
+	return result, nil
+}
+
+func getServiceInternalHostByFirstTCPPort(service api.Service) string {
+	for _, port := range service.Spec.Ports {
+		if port.Protocol == api.ProtocolTCP {
+			return getServiceInternalHost(port, service)
+		}
+	}
+	return ""
 }
 
 type ServiceBindingsDeleteResponse struct {

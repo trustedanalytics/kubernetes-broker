@@ -158,45 +158,46 @@ func GetKubernetesBlueprintByServiceAndPlan(catalogPath string, svcMeta ServiceM
 	}
 
 	svc_path := catalogPath + svcMeta.InternalId + "/"
-	plan_path := svc_path + planMeta.InternalId + "/k8s/"
+	plan_path := svc_path + planMeta.InternalId + "/"
+	k8s_plan_path := plan_path + "k8s/"
 
-	result.PersistentVolumeClaim, err = read_k8s_files_with_prefix_from_dir(plan_path, "persistentvolumeclaim")
+	result.PersistentVolumeClaim, err = read_k8s_files_with_prefix_from_dir(k8s_plan_path, "persistentvolumeclaim")
 	if err != nil {
 		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading Replication Controller file", err)
 		return result, err
 	}
 
-	result.SecretsJson, err = read_k8s_files_with_prefix_from_dir(plan_path, "secret")
+	result.SecretsJson, err = read_k8s_files_with_prefix_from_dir(k8s_plan_path, "secret")
 	if err != nil {
 		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading secret files", err)
 		return result, err
 	}
 
-	result.ReplicationControllerJson, err = read_k8s_files_with_prefix_from_dir(plan_path, "replicationcontroller")
+	result.ReplicationControllerJson, err = read_k8s_files_with_prefix_from_dir(k8s_plan_path, "replicationcontroller")
 	if err != nil {
 		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading Replication Controller file", err)
 		return result, err
 	}
 
-	result.ServiceJson, err = read_k8s_files_with_prefix_from_dir(plan_path, "service")
+	result.ServiceJson, err = read_k8s_files_with_prefix_from_dir(k8s_plan_path, "service")
 	if err != nil {
 		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading service file", err)
 		return result, err
 	}
 
-	result.ServiceAcccountJson, err = read_k8s_files_with_prefix_from_dir(plan_path, "account")
+	result.ServiceAcccountJson, err = read_k8s_files_with_prefix_from_dir(k8s_plan_path, "account")
 	if err != nil {
 		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading account file", err)
 		return result, err
 	}
 
-	credentialMappings, err := read_k8s_files_with_prefix_from_dir(svc_path, "credentials-mappings")
+	credentialMappings, err := read_k8s_files_with_prefix_from_dir(plan_path, "credentials-mappings")
 	if err != nil {
 		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading credential mappings file", err)
 		return result, err
 	}
 
-	replicas, err := read_k8s_files_with_prefix_from_dir(svc_path, "node_template")
+	replicas, err := read_k8s_files_with_prefix_from_dir(plan_path, "node_template")
 	if err != nil {
 		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading replica template files", svc_path)
 		return result, err
