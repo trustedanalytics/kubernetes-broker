@@ -44,6 +44,9 @@ type K8sClusterCredential struct {
 	Server         string `json:"api_server"`
 	Username       string `json:"username"`
 	Password       string `json:"password"`
+	CaCert         string `json:"ca_cert"`
+	AdminKey       string `json:"admin_key"`
+	AdminCert      string `json:"admin_cert"`
 	ConsulEndpoint string `json:"consul_http_api"`
 }
 

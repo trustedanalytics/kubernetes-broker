@@ -47,7 +47,7 @@ const orgHost = "orgHost"
 const space = "spaceTest"
 const domain = "domainTest"
 
-var testCreds K8sClusterCredential = K8sClusterCredential{"", orgHost, "", "", ""}
+var testCreds K8sClusterCredential = K8sClusterCredential{Server: orgHost}
 
 func TestFabricateService(t *testing.T) {
 	fabricator, mockStateService, mockKubernetesRest := prepareMocksAndRouter(t)

@@ -55,7 +55,10 @@ const URLserviceBindingsPath = "/v2/service_instances/:instance_id/service_bindi
 
 var testCatalogPath = tst.GetTestCatalogPath("/app/tap")
 var testError error = errors.New("New Errror")
-var testCreds k8s.K8sClusterCredential = k8s.K8sClusterCredential{tst.TestOrgHost, tst.TestOrgHost, "", "", ""}
+var testCreds k8s.K8sClusterCredential = k8s.K8sClusterCredential{
+	CLusterName: tst.TestOrgHost,
+	Server: tst.TestOrgHost,
+}
 
 func prepareMocksAndRouter(t *testing.T) (r *web.Router, mockCloudAPi *MockCloudApi, mockKubernetesApi *k8s.MockKubernetesApi,
 	mockStateService *state.MockStateService, mockCreatorConnector *k8s.MockK8sCreatorRest, consulMockService *consul.MockConsulService) {

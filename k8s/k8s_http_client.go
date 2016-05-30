@@ -80,7 +80,7 @@ func getKubernetesClient(creds K8sClusterCredential) (KubernetesClient, error) {
 	var err error
 
 	if sslActive {
-		_, transport, err = brokerHttp.GetHttpClientWithCertAndCa()
+		_, transport, err = brokerHttp.GetHttpClientWithCertAndCa(creds.AdminCert, creds.AdminKey, creds.CaCert)
 	} else {
 		_, transport, err = brokerHttp.GetHttpClientWithBasicAuth()
 	}

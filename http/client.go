@@ -32,14 +32,8 @@ const MaxIdleconnetionPerHost int = 20
 
 var logger = logger_wrapper.InitLogger("http")
 
-func GetHttpClientWithCertAndCa() (*http.Client, *http.Transport, error) {
-	//TODO consider move this certs to method args instead getting it from system env
-
-	cert, ca, err := getCertKeyAndCa(
-		cfenv.CurrentEnv()["KUBERNETES_CERT_PEM_STRING"],
-		cfenv.CurrentEnv()["KUBERNETES_KEY_PEM_STRING"],
-		cfenv.CurrentEnv()["KUBERNETES_CA_PEM_STRING"],
-	)
+func GetHttpClientWithCertAndCa(certPem, keyPem, caPem string) (*http.Client, *http.Transport, error) {
+	cert, ca, err := getCertKeyAndCa(certPem, keyPem, caPem)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -61,9 +55,8 @@ func GetHttpClientWithCertAndCa() (*http.Client, *http.Transport, error) {
 	return client, transport, nil
 }
 
-func GetHttpClientWithCa() (*http.Client, *http.Transport, error) {
-	//TODO consider move this cert to method arg instead getting it from system env
-	ca, err := getCa(cfenv.CurrentEnv()["KUBERNETES_CREATOR_CA_PEM_STRING"])
+func GetHttpClientWithCa(caPem string) (*http.Client, *http.Transport, error) {
+	ca, err := getCa(caPem)
 	if err != nil {
 		return nil, nil, err
 	}

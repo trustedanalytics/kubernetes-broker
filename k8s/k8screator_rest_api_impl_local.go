@@ -27,6 +27,9 @@ func (k *K8sCreatorConnector) GetDefaultCluster() K8sClusterCredential {
 	k8sCreatorPostClusterResponse.Server = k.GetLocalAddress()
 	k8sCreatorPostClusterResponse.CLusterName = "test-doc"
 	k8sCreatorPostClusterResponse.Username = ""
+	k8sCreatorPostClusterResponse.AdminCert = os.Getenv("KUBERNETES_CERT_PEM_STRING")
+	k8sCreatorPostClusterResponse.AdminKey = os.Getenv("KUBERNETES_KEY_PEM_STRING")
+	k8sCreatorPostClusterResponse.CaCert = os.Getenv("KUBERNETES_CA_PEM_STRING")
 	return k8sCreatorPostClusterResponse
 }
 func (k *K8sCreatorConnector) DeleteCluster(org string) error {
