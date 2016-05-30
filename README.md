@@ -20,7 +20,7 @@ It requires go 1.6, grab it from here: https://storage.googleapis.com/golang/go1
 Please note that shell scripts are provided temporarly for convinience - they will be gone later on.
 
 ## Cloud foundry installation requirements
-* Demiurge app is required to be running (https://github.com/intel-data/demiurge) and its credentials has to be known.
+* Demiurge app is required to be running (https://github.com/trustedanalytics/demiurge) and its credentials has to be known.
 Having this knowledge user provided service has to be added:
 
     ```
@@ -30,7 +30,7 @@ Having this knowledge user provided service has to be added:
     e.g.:
 
      ```
-    cf cups kubernetes-creator-credentials -p  '{"username":"admin","password":"admin","url":"http://demiurge.dev-krb.gotapaas.eu"}'
+    cf cups kubernetes-creator-credentials -p  '{"username":"admin","password":"admin","url":"http://demiurge.dev.example.com"}'
     ```
 * 'sso' user provided service with cloud foundry credentials has to be created
 
