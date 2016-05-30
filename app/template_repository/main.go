@@ -24,7 +24,7 @@ import (
 
 	"github.com/gocraft/web"
 
-	"github.com/trustedanalytics/kubernetes-broker/app/tap-ng_template-provider/api"
+	"github.com/trustedanalytics/kubernetes-broker/app/template_repository/api"
 	"github.com/trustedanalytics/kubernetes-broker/catalog"
 	"github.com/trustedanalytics/kubernetes-broker/logger"
 	"github.com/trustedanalytics/kubernetes-broker/state"
@@ -50,12 +50,11 @@ func main() {
 	r.Put("/dynamicservice", (*api.Context).CreateAndRegisterDynamicService)
 	r.Delete("/dynamicservice", (*api.Context).DeleteAndUnregisterDynamicService)
 
-	host := os.Getenv("HOST")
-	port := os.Getenv("PORT")
-	logger.Info("Will listen on:", host, port)
-	err := http.ListenAndServe(host+":"+port, r)
+	address := os.Getenv("TEMPLATE_REPOSITORY_ADDRESS")
+	logger.Info("Will listen on:", address)
+	err := http.ListenAndServe(address, r)
 	if err != nil {
-		logger.Critical("Couldn't serve app on port ", port, " Application will be closed now.")
+		logger.Critical("Couldn't serve app on address: ", address, " Application will be closed now.")
 	}
 }
 

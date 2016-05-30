@@ -35,6 +35,25 @@ import (
 var publicKey *rsa.PublicKey
 var TokenKeyURL string
 
+type TapJWTToken struct {
+	Jti       string   `json:"jti"`
+	Sub       string   `json:"sub"`
+	Scope     []string `json:"scope"`
+	ClientId  string   `json:"client_id"`
+	Cid       string   `json:"cid"`
+	Azp       string   `json:"azp"`
+	GrantType string   `json:"grant_type"`
+	UserId    string   `json:"user_id"`
+	Username  string   `json:"user_name"`
+	Email     string   `json:"email"`
+	RevSig    string   `json:"rev_sig"`
+	Iat       int64    `json:"iat"`
+	Exp       int64    `json:"exp"`
+	Iss       string   `json:"iss"`
+	Zid       string   `json:"zid"`
+	Aud       []string `json:"aud"`
+}
+
 func (c *Context) JWTAuthorizeMiddleware(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
 	logger.Info("Trying to access url ", req.URL.Path, " by JWTAuthorize")
 	if ok := isUserAuthorized(req); ok {

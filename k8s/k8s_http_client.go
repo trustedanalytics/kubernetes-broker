@@ -53,7 +53,7 @@ type KubernetesClient interface {
 }
 
 type KubernetesClientCreator interface {
-	GetNewClient(creds K8sClusterCredential) (KubernetesClient, error)
+	GetNewClient(creds K8sClusterCredentials) (KubernetesClient, error)
 }
 
 type KubernetesRestCreator struct {
@@ -65,11 +65,11 @@ type KubernetesTestCreator struct {
 
 var logger = logger_wrapper.InitLogger("k8s")
 
-func (k *KubernetesRestCreator) GetNewClient(creds K8sClusterCredential) (KubernetesClient, error) {
+func (k *KubernetesRestCreator) GetNewClient(creds K8sClusterCredentials) (KubernetesClient, error) {
 	return getKubernetesClient(creds)
 }
 
-func getKubernetesClient(creds K8sClusterCredential) (KubernetesClient, error) {
+func getKubernetesClient(creds K8sClusterCredentials) (KubernetesClient, error) {
 	sslActive, parseError := strconv.ParseBool(cfenv.CurrentEnv()["KUBE_SSL_ACTIVE"])
 	if parseError != nil {
 		logger.Error("KUBE_SSL_ACTIVE env probably not set!")
@@ -98,7 +98,7 @@ func getKubernetesClient(creds K8sClusterCredential) (KubernetesClient, error) {
 	return k8sClient.New(config)
 }
 
-func (k *KubernetesTestCreator) GetNewClient(creds K8sClusterCredential) (KubernetesClient, error) {
+func (k *KubernetesTestCreator) GetNewClient(creds K8sClusterCredentials) (KubernetesClient, error) {
 	return k.testClient, nil
 }
 

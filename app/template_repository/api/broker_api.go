@@ -24,6 +24,7 @@ import (
 
 	"github.com/trustedanalytics/kubernetes-broker/catalog"
 	"github.com/trustedanalytics/kubernetes-broker/state"
+	"github.com/trustedanalytics/kubernetes-broker/util"
 )
 
 type Config struct {
@@ -36,14 +37,14 @@ var BrokerConfig *Config
 
 func (c *Context) CheckBrokerConfig(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
 	if BrokerConfig == nil {
-		Respond500(rw, errors.New("brokerConfig not set!"))
+		util.Respond500(rw, errors.New("brokerConfig not set!"))
 	}
 	next(rw, req)
 }
 
 func (c *Context) Catalog(rw web.ResponseWriter, req *web.Request) {
 	services := catalog.GetAvailableServicesMetadata()
-	WriteJson(rw, services, http.StatusOK)
+	util.WriteJson(rw, services, http.StatusOK)
 }
 
 type GenerateParsedTemplateRequest struct {
@@ -57,26 +58,25 @@ type GenerateParsedTemplateRequest struct {
 func (c *Context) GenerateParsedTemplate(rw web.ResponseWriter, req *web.Request) {
 	req_json := GenerateParsedTemplateRequest{}
 
-	err := ReadJson(req, &req_json)
+	err := util.ReadJson(req, &req_json)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	svcMetadata, planMetadata, err := catalog.WhatToCreateByServiceAndPlanId(req_json.ServiceMetadataUuid, req_json.PlanMetadataUuid)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	component, err := catalog.GetParsedKubernetesComponent(catalog.CatalogPath, req_json.Uuid,
 		req_json.OrgId, req_json.SpaceId, svcMetadata, planMetadata)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
-
-	WriteJson(rw, component, http.StatusOK)
+	util.WriteJson(rw, component, http.StatusOK)
 }
 
 type DynamicServiceRequest struct {
@@ -86,46 +86,46 @@ type DynamicServiceRequest struct {
 func (c *Context) CreateAndRegisterDynamicService(rw web.ResponseWriter, req *web.Request) {
 	req_json := DynamicServiceRequest{}
 
-	err := ReadJson(req, &req_json)
+	err := util.ReadJson(req, &req_json)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	if catalog.CheckIfServiceAlreadyExist(req_json.DynamicService.ServiceName) {
-		Respond500(rw, errors.New("Service with name: "+req_json.DynamicService.ServiceName+" already exists!"))
+		util.Respond500(rw, errors.New("Service with name: "+req_json.DynamicService.ServiceName+" already exists!"))
 		return
 	}
 
 	blueprint, _, service, err := catalog.CreateDynamicService(req_json.DynamicService)
 	if err != nil {
 		logger.Error("[CreateAndRegisterDynamicService] CreateDynamicService fail!", err)
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	catalog.RegisterOfferingInCatalog(service, blueprint)
-	WriteJson(rw, "", http.StatusCreated)
+	util.WriteJson(rw, "", http.StatusCreated)
 }
 
 func (c *Context) DeleteAndUnregisterDynamicService(rw web.ResponseWriter, req *web.Request) {
 	req_json := DynamicServiceRequest{}
 
-	err := ReadJson(req, &req_json)
+	err := util.ReadJson(req, &req_json)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	service, err := catalog.GetServiceByName(req_json.DynamicService.ServiceName)
 	if err != nil {
 		logger.Error("[DeleteAndUnRegisterDynamicService] Delete DynamicService fail!", err)
-		WriteJson(rw, "", http.StatusGone)
+		util.WriteJson(rw, "", http.StatusGone)
 		return
 	}
 
 	catalog.UnregisterOfferingFromCatalog(service)
-	WriteJson(rw, "", http.StatusNoContent)
+	util.WriteJson(rw, "", http.StatusNoContent)
 
 }
 

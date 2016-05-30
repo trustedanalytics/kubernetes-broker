@@ -18,10 +18,13 @@ local_bin/app: verify_gopath
 	go fmt $(APP_DIR_LIST)
 
 run: local_bin/app
-	./scripts/start.sh
+	./scripts/start_tap.sh
 
-run_tapng_provider: local_bin/app
-	./scripts/start_tap-ng_template-provider.sh
+run_template_repository: local_bin/app
+	./scripts/start_template_repository.sh
+
+run_container_broker: local_bin/app
+	./scripts/start_container_broker.sh
 
 bin/govendor: verify_gopath
 	go get -v -u github.com/kardianos/govendor

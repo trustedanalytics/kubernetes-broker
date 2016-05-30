@@ -22,8 +22,8 @@ import (
 	"os"
 )
 
-func (k *K8sCreatorConnector) GetDefaultCluster() K8sClusterCredential {
-	k8sCreatorPostClusterResponse := K8sClusterCredential{}
+func (k *K8sCreatorConnector) GetDefaultCluster() K8sClusterCredentials {
+	k8sCreatorPostClusterResponse := K8sClusterCredentials{}
 	k8sCreatorPostClusterResponse.Server = k.GetLocalAddress()
 	k8sCreatorPostClusterResponse.CLusterName = "test-doc"
 	k8sCreatorPostClusterResponse.Username = ""
@@ -35,18 +35,18 @@ func (k *K8sCreatorConnector) GetDefaultCluster() K8sClusterCredential {
 func (k *K8sCreatorConnector) DeleteCluster(org string) error {
 	return nil
 }
-func (k *K8sCreatorConnector) GetCluster(org string) (int, K8sClusterCredential, error) {
+func (k *K8sCreatorConnector) GetCluster(org string) (int, K8sClusterCredentials, error) {
 	logger.Info("Local version OK")
 	return 200, k.GetDefaultCluster(), nil
 }
 func (k *K8sCreatorConnector) PostCluster(org string) (int, error) {
 	return 200, nil
 }
-func (k *K8sCreatorConnector) GetClusters() ([]K8sClusterCredential, error) {
-	k8sCreatorGetClustersResponse := []K8sClusterCredential{}
+func (k *K8sCreatorConnector) GetClusters() ([]K8sClusterCredentials, error) {
+	k8sCreatorGetClustersResponse := []K8sClusterCredentials{}
 	return k8sCreatorGetClustersResponse, nil
 }
-func (k *K8sCreatorConnector) GetOrCreateCluster(org string) (K8sClusterCredential, error) {
+func (k *K8sCreatorConnector) GetOrCreateCluster(org string) (K8sClusterCredentials, error) {
 	status, kresp, err := k.GetCluster(org)
 	if status == 200 && err != nil {
 		return kresp, nil

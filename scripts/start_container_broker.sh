@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright (c) 2016 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,16 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-export K8S_API_ADDRESS=http://localhost:8080
+source scripts/local_config.sh
 
-export HOST="0.0.0.0"
-export PORT="8081"
-export AUTH_USER="admin"
-export AUTH_PASS="password"
-
-export INSECURE_SKIP_VERIFY=true
-export BROKER_LOG_LEVEL=DEBUG
-export KUBE_SSL_ACTIVE=false
-
-$GOPATH/bin/tap-ng_template-provider
+$GOPATH/bin/container_broker
 exit $?

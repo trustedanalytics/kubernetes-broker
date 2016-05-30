@@ -27,7 +27,7 @@ import (
 func (c *Context) BasicAuthorizeMiddleware(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
 	logger.Info("Trying to access url ", req.URL.Path, " by BasicAuthorize")
 	username, password, is_ok := req.BasicAuth()
-	if !is_ok || username != os.Getenv("AUTH_USER") || password != os.Getenv("AUTH_PASS") {
+	if !is_ok || username != os.Getenv("TEMPLATE_REPOSITORY_USER") || password != os.Getenv("TEMPLATE_REPOSITORY_PASS") {
 		logger.Info("EnforceAuthMiddleware - BasicAuth: Invalid Basic Auth credentials")
 		rw.WriteHeader(http.StatusUnauthorized)
 		fmt.Fprintf(rw, "%s", `{"error":"invalid basic auth credentials"}`)

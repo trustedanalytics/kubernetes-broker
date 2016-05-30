@@ -25,13 +25,14 @@ import (
 	"github.com/trustedanalytics/kubernetes-broker/logger"
 )
 
-type TapNgTemplateProviderClient interface {
+type TemplateRepository interface {
 	GetCatalog() (catalog.ServicesMetadata, error)
+	GenerateParsedTemplate(request GenerateParsedTemplateRequest) (catalog.KubernetesComponent, error)
 	CreateAndRegisterDynamicService(dynamicService DynamicServiceRequest) error
 	DeleteAndUnregisterDynamicService(dynamicService DynamicServiceRequest) error
 }
 
-type TapNgClient struct {
+type TemplateRepositoryConnector struct {
 	Address  string
 	Username string
 	Password string
@@ -40,15 +41,15 @@ type TapNgClient struct {
 
 var logger = logger_wrapper.InitLogger("api")
 
-func NewTapNgTemplateProviderClient(address, username, password string) (*TapNgClient, error) {
+func NewTemplateRepository(address, username, password string) (*TemplateRepositoryConnector, error) {
 	client, _, err := brokerHttp.GetHttpClientWithBasicAuth()
 	if err != nil {
 		return nil, err
 	}
-	return &TapNgClient{address, username, password, client}, nil
+	return &TemplateRepositoryConnector{address, username, password, client}, nil
 }
 
-func (t *TapNgClient) GetCatalog() (catalog.ServicesMetadata, error) {
+func (t *TemplateRepositoryConnector) GetCatalog() (catalog.ServicesMetadata, error) {
 	url := t.Address + "/catalog"
 	_, body, err := brokerHttp.RestGET(url, &brokerHttp.BasicAuth{t.Username, t.Password}, t.Client)
 
@@ -61,19 +62,26 @@ func (t *TapNgClient) GetCatalog() (catalog.ServicesMetadata, error) {
 	return services, nil
 }
 
-func (t *TapNgClient) GenerateParsedTemplate(request GenerateParsedTemplateRequest) error {
+func (t *TemplateRepositoryConnector) GenerateParsedTemplate(request GenerateParsedTemplateRequest) (catalog.KubernetesComponent, error) {
+	component := catalog.KubernetesComponent{}
+
 	url := t.Address + "/catalog/parsed"
 	body, err := json.Marshal(request)
 	if err != nil {
-		logger.Error("GenerateParsedTemplate error:", err)
-		return err
+		logger.Error("GenerateParsedTemplate marshall request error:", err)
+		return component, err
 	}
 
-	_, _, err = brokerHttp.RestPOST(url, string(body), &brokerHttp.BasicAuth{t.Username, t.Password}, t.Client)
-	return err
+	_, body, err = brokerHttp.RestPOST(url, string(body), &brokerHttp.BasicAuth{t.Username, t.Password}, t.Client)
+	err = json.Unmarshal(body, &component)
+	if err != nil {
+		logger.Error("GenerateParsedTemplate unmarshall response error:", err)
+		return component, err
+	}
+	return component, nil
 }
 
-func (t *TapNgClient) CreateAndRegisterDynamicService(dynamicService DynamicServiceRequest) error {
+func (t *TemplateRepositoryConnector) CreateAndRegisterDynamicService(dynamicService DynamicServiceRequest) error {
 	url := t.Address + "/dynamicservice"
 	body, err := json.Marshal(dynamicService)
 	if err != nil {
@@ -85,7 +93,7 @@ func (t *TapNgClient) CreateAndRegisterDynamicService(dynamicService DynamicServ
 	return err
 }
 
-func (t *TapNgClient) DeleteAndUnregisterDynamicService(dynamicService DynamicServiceRequest) error {
+func (t *TemplateRepositoryConnector) DeleteAndUnregisterDynamicService(dynamicService DynamicServiceRequest) error {
 	url := t.Address + "/dynamicservice"
 	body, err := json.Marshal(dynamicService)
 	if err != nil {

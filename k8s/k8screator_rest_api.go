@@ -23,10 +23,10 @@ import (
 
 type K8sCreatorRest interface {
 	DeleteCluster(org string) error
-	GetCluster(org string) (int, K8sClusterCredential, error)
-	GetOrCreateCluster(org string) (K8sClusterCredential, error)
+	GetCluster(org string) (int, K8sClusterCredentials, error)
+	GetOrCreateCluster(org string) (K8sClusterCredentials, error)
 	PostCluster(org string) (int, error)
-	GetClusters() ([]K8sClusterCredential, error)
+	GetClusters() ([]K8sClusterCredentials, error)
 }
 
 type K8sCreatorConnector struct {
@@ -39,7 +39,7 @@ type K8sCreatorConnector struct {
 	KubernetesClient KubernetesClientCreator
 }
 
-type K8sClusterCredential struct {
+type K8sClusterCredentials struct {
 	CLusterName    string `json:"cluster_name"`
 	Server         string `json:"api_server"`
 	Username       string `json:"username"`
@@ -66,7 +66,7 @@ func NewK8sCreatorConnector(server, user, pass string, maxOrgQuota int) *K8sCrea
 	}
 }
 
-func (k *K8sCreatorConnector) IsApiWorking(credential K8sClusterCredential) bool {
+func (k *K8sCreatorConnector) IsApiWorking(credential K8sClusterCredentials) bool {
 	req_url := credential.Server + "/api/v1"
 	statusCde, _, err := brokerHttp.RestGET(req_url, &brokerHttp.BasicAuth{credential.Username, credential.Password}, k.Client)
 

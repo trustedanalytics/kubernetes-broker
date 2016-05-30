@@ -33,6 +33,7 @@ import (
 	"github.com/trustedanalytics/kubernetes-broker/consul"
 	"github.com/trustedanalytics/kubernetes-broker/k8s"
 	"github.com/trustedanalytics/kubernetes-broker/state"
+	"github.com/trustedanalytics/kubernetes-broker/util"
 )
 
 type BrokerConfig struct {
@@ -50,19 +51,19 @@ var brokerConfig *BrokerConfig
 
 func (c *Context) CheckBrokerConfig(rw web.ResponseWriter, req *web.Request, next web.NextMiddlewareFunc) {
 	if brokerConfig == nil {
-		Respond500(rw, errors.New("brokerConfig not set!"))
+		util.Respond500(rw, errors.New("brokerConfig not set!"))
 	}
 	next(rw, req)
 }
 
 func (c *Context) Index(rw web.ResponseWriter, req *web.Request) {
-	WriteJson(rw, "I'm OK", http.StatusOK)
+	util.WriteJson(rw, "I'm OK", http.StatusOK)
 }
 
 // http://docs.cloudfoundry.org/services/api.html#catalog-mgmt
 func (c *Context) Catalog(rw web.ResponseWriter, req *web.Request) {
 	services := catalog.GetAvailableServicesMetadata()
-	WriteJson(rw, services, http.StatusOK)
+	util.WriteJson(rw, services, http.StatusOK)
 }
 
 func (c *Context) GetServiceDetails(rw web.ResponseWriter, req *web.Request) {
@@ -70,9 +71,9 @@ func (c *Context) GetServiceDetails(rw web.ResponseWriter, req *web.Request) {
 
 	service, err := catalog.GetServiceMetadataByServiceId(service_id)
 	if err != nil {
-		Respond404(rw, err)
+		util.Respond404(rw, err)
 	}
-	WriteJson(rw, service, http.StatusOK)
+	util.WriteJson(rw, service, http.StatusOK)
 }
 
 type ServiceInstancesPutRequest struct {
@@ -93,10 +94,10 @@ type ServiceInstancesPutResponse struct {
 func (c *Context) ServiceInstancesPut(rw web.ResponseWriter, req *web.Request) {
 	req_json := ServiceInstancesPutRequest{}
 
-	err := ReadJson(req, &req_json)
+	err := util.ReadJson(req, &req_json)
 	if err != nil {
 		brokerConfig.StateService.ReportProgress("1", "FAILED", err)
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 	instance_id := req.PathParams["instance_id"]
@@ -114,7 +115,7 @@ func (c *Context) ServiceInstancesPut(rw web.ResponseWriter, req *web.Request) {
 	svc_meta, plan_meta, err := catalog.WhatToCreateByServiceAndPlanId(serviceId, planId)
 	if err != nil {
 		brokerConfig.StateService.ReportProgress(instance_id, "FAILED", err)
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 	brokerConfig.StateService.ReportProgress(instance_id, "IN_PROGRESS_METADATA_OK", nil)
@@ -127,14 +128,14 @@ func (c *Context) ServiceInstancesPut(rw web.ResponseWriter, req *web.Request) {
 			if !async {
 				logger.Error(err)
 			}
-			Respond500(rw, err)
+			util.Respond500(rw, err)
 			return
 		}
 		brokerConfig.StateService.ReportProgress(instance_id, "IN_PROGRESS_BLUEPRINT_OK", nil)
 
 		creds, err := brokerConfig.CreatorConnector.GetOrCreateCluster(org)
 		if err != nil {
-			Respond500(rw, err)
+			util.Respond500(rw, err)
 			return
 		}
 
@@ -144,7 +145,7 @@ func (c *Context) ServiceInstancesPut(rw web.ResponseWriter, req *web.Request) {
 			if !async {
 				logger.Error(err)
 			}
-			Respond500(rw, err)
+			util.Respond500(rw, err)
 			return
 		}
 		brokerConfig.StateService.ReportProgress(instance_id, "IN_PROGRESS_KUBERNETES_OK", nil)
@@ -159,9 +160,9 @@ func (c *Context) ServiceInstancesPut(rw web.ResponseWriter, req *web.Request) {
 	url := "UrlNotYetSupported"
 	ret.DashboardUrl = &url
 	if async {
-		WriteJson(rw, ret, http.StatusAccepted)
+		util.WriteJson(rw, ret, http.StatusAccepted)
 	} else {
-		WriteJson(rw, ret, http.StatusCreated)
+		util.WriteJson(rw, ret, http.StatusCreated)
 	}
 
 }
@@ -169,16 +170,16 @@ func (c *Context) ServiceInstancesPut(rw web.ResponseWriter, req *web.Request) {
 func (c *Context) GetQuota(rw web.ResponseWriter, req *web.Request) {
 	req_json := ServiceInstancesPutRequest{}
 	logger.Info("getting quota")
-	err := ReadJson(req, &req_json)
+	err := util.ReadJson(req, &req_json)
 	if err != nil {
 		brokerConfig.StateService.ReportProgress("1", "FAILED", err)
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	_, creds, err := brokerConfig.CreatorConnector.GetCluster(req_json.OrganizationGuid)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
@@ -186,11 +187,11 @@ func (c *Context) GetQuota(rw web.ResponseWriter, req *web.Request) {
 
 	if err != nil {
 		brokerConfig.StateService.ReportProgress("1", "FAILED", err)
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
-	WriteJson(rw, quotaResource.Items[0].Status.Used.Memory, http.StatusAccepted)
+	util.WriteJson(rw, quotaResource.Items[0].Status.Used.Memory, http.StatusAccepted)
 
 }
 
@@ -211,23 +212,23 @@ func (c *Context) GetService(rw web.ResponseWriter, req *web.Request) {
 
 	_, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	services, err := brokerConfig.KubernetesApi.GetService(creds, org, service_id)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	servicesPublicTags, err := brokerConfig.ConsulApi.GetServicesListWithPublicTagStatus(creds.ConsulEndpoint)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 	}
 
 	response := createServiceInfoList(org, space, services, servicesPublicTags)
-	WriteJson(rw, response, http.StatusAccepted)
+	util.WriteJson(rw, response, http.StatusAccepted)
 
 }
 
@@ -238,43 +239,43 @@ func (c *Context) GetServices(rw web.ResponseWriter, req *web.Request) {
 
 	_, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	services, err := brokerConfig.KubernetesApi.GetServices(creds, org)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	servicesPublicTags, err := brokerConfig.ConsulApi.GetServicesListWithPublicTagStatus(creds.ConsulEndpoint)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 	}
 
 	response := createServiceInfoList(org, space, services, servicesPublicTags)
-	WriteJson(rw, response, http.StatusAccepted)
+	util.WriteJson(rw, response, http.StatusAccepted)
 }
 
 func (c *Context) SetServiceVisibility(rw web.ResponseWriter, req *web.Request) {
 	req_json := ServiceInstancesPutRequest{}
 	logger.Info("Setting service visibility")
-	err := ReadJson(req, &req_json)
+	err := util.ReadJson(req, &req_json)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	_, creds, err := brokerConfig.CreatorConnector.GetCluster(req_json.OrganizationGuid)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	services, err := brokerConfig.KubernetesApi.GetService(creds, req_json.OrganizationGuid, req_json.ServiceId)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
@@ -304,12 +305,12 @@ func (c *Context) SetServiceVisibility(rw web.ResponseWriter, req *web.Request) 
 
 		err := brokerConfig.ConsulApi.UpdateServiceTag(consulData, creds.ConsulEndpoint)
 		if err != nil {
-			Respond500(rw, err)
+			util.Respond500(rw, err)
 			return
 		}
 		response = append(response, svc)
 	}
-	WriteJson(rw, response, http.StatusAccepted)
+	util.WriteJson(rw, response, http.StatusAccepted)
 }
 
 func createServiceInfoList(org, space string, services []api.Service, servicesPublicTags map[string]bool) []ServiceInfoResponse {
@@ -368,13 +369,13 @@ func (c *Context) ServiceInstancesGetLastOperation(rw web.ResponseWriter, req *w
 
 	org, space, err := brokerConfig.CloudProvider.GetOrgIdAndSpaceIdFromCfByServiceInstanceId(instance_id)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	_, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
@@ -406,7 +407,7 @@ func (c *Context) ServiceInstancesGetLastOperation(rw web.ResponseWriter, req *w
 	}
 
 	logger.Info("[ServiceInstancesGetLastOperation] result: ", stateValue, "serviceId: ", instance_id, "org: ", org, "space: ", space)
-	WriteJson(rw, ServiceInstancesGetLastOperationResponse{stateValue, &description}, http.StatusOK)
+	util.WriteJson(rw, ServiceInstancesGetLastOperationResponse{stateValue, &description}, http.StatusOK)
 }
 
 type ServiceInstancesDeleteResponse struct {
@@ -421,39 +422,39 @@ func (c *Context) ServiceInstancesDelete(rw web.ResponseWriter, req *web.Request
 
 	org, _, err := brokerConfig.CloudProvider.GetOrgIdAndSpaceIdFromCfByServiceInstanceId(instance_id)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	status, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
 	if err != nil {
 		if status != 200 {
-			WriteJson(rw, ServiceInstancesDeleteResponse{}, http.StatusGone)
+			util.WriteJson(rw, ServiceInstancesDeleteResponse{}, http.StatusGone)
 			return
 		}
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	if status == 404 || status == 204 {
 		logger.Error("Cluster not exist! We can't remove service, service_id:", service_id)
-		WriteJson(rw, ServiceInstancesDeleteResponse{}, http.StatusGone)
+		util.WriteJson(rw, ServiceInstancesDeleteResponse{}, http.StatusGone)
 		return
 	}
 
 	err = brokerConfig.KubernetesApi.DeleteAllByServiceId(creds, instance_id)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	go removeCluster(creds, org)
 
 	logger.Info("Service DELETED. Id:", service_id)
-	WriteJson(rw, ServiceInstancesDeleteResponse{}, http.StatusOK)
+	util.WriteJson(rw, ServiceInstancesDeleteResponse{}, http.StatusOK)
 }
 
-func removeCluster(creds k8s.K8sClusterCredential, org string) {
+func removeCluster(creds k8s.K8sClusterCredentials, org string) {
 	time.Sleep(brokerConfig.WaitBeforeRemoveClusterIntervalSec)
 
 	for {
@@ -513,12 +514,12 @@ type ServiceBindingsPutRequest struct {
 // http://docs.cloudfoundry.org/services/api.html#binding
 func (c *Context) ServiceBindingsPut(rw web.ResponseWriter, req *web.Request) {
 	req_json := ServiceBindingsPutRequest{}
-	ReadJson(req, &req_json)
+	util.ReadJson(req, &req_json)
 	instance_id := req.PathParams["instance_id"] // already provisioned instance
 	binding_id := req.PathParams["binding_id"]   // used for unbinding
 
 	if req_json.ServiceId == nil || req_json.PlanId == nil {
-		Respond500(rw, errors.New("service id or plan id is nil - at this stage, we won't continue. TODO: ask CF to retrieve those from API, by instance_id"))
+		util.Respond500(rw, errors.New("service id or plan id is nil - at this stage, we won't continue. TODO: ask CF to retrieve those from API, by instance_id"))
 		return
 	} else {
 		logger.Debug(req_json, instance_id, binding_id, "ServiceID=", *req_json.ServiceId, "PlanID=", *req_json.PlanId)
@@ -526,46 +527,46 @@ func (c *Context) ServiceBindingsPut(rw web.ResponseWriter, req *web.Request) {
 
 	svc_meta, plan_meta, err := catalog.WhatToCreateByServiceAndPlanId(*req_json.ServiceId, *req_json.PlanId)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 	logger.Info("Binding, found blueprint name: ", svc_meta.Name, " with plan: ", plan_meta.Name)
 
 	org, space, err := brokerConfig.CloudProvider.GetOrgIdAndSpaceIdFromCfByServiceInstanceId(instance_id)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 	logger.Debug("org: ", org, "space: ", space)
 
 	_, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	podsEnvs, err := brokerConfig.KubernetesApi.GetAllPodsEnvsByServiceId(creds, space, instance_id)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	svcCreds, err := getServiceCredentials(creds, space, instance_id)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	blueprint, err := catalog.GetKubernetesBlueprintByServiceAndPlan(catalog.CatalogPath, svc_meta, plan_meta)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 	logger.Debug("CredentialMappings: ", blueprint.CredentialsMapping)
 
 	mapping, err := ParseCredentialMappingAdvanced(svc_meta.Name, svcCreds, podsEnvs, blueprint)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
@@ -582,7 +583,7 @@ type ServiceCredential struct {
 	Ports []api.ServicePort
 }
 
-func getServiceCredentials(creds k8s.K8sClusterCredential, org, serviceId string) ([]ServiceCredential, error) {
+func getServiceCredentials(creds k8s.K8sClusterCredentials, org, serviceId string) ([]ServiceCredential, error) {
 	logger.Info("[GetServiceCredentials] serviceId:", serviceId)
 	result := []ServiceCredential{}
 
@@ -628,7 +629,7 @@ func (c *Context) ServiceBindingsDelete(rw web.ResponseWriter, req *web.Request)
 	service_id := req.URL.Query().Get("service_id")
 	logger.Info("ServiceBindingsDelete instance:", instance_id, "binding:", binding_id, "plan:", plan_id, "service", service_id)
 
-	WriteJson(rw, ServiceBindingsDeleteResponse{}, http.StatusGone)
+	util.WriteJson(rw, ServiceBindingsDeleteResponse{}, http.StatusGone)
 }
 
 type DynamicServiceRequest struct {
@@ -642,21 +643,21 @@ type DynamicServiceRequest struct {
 func (c *Context) CreateAndRegisterDynamicService(rw web.ResponseWriter, req *web.Request) {
 	req_json := DynamicServiceRequest{}
 
-	err := ReadJson(req, &req_json)
+	err := util.ReadJson(req, &req_json)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	if catalog.CheckIfServiceAlreadyExist(req_json.DynamicService.ServiceName) {
-		Respond500(rw, errors.New("Service with name: "+req_json.DynamicService.ServiceName+" already exists!"))
+		util.Respond500(rw, errors.New("Service with name: "+req_json.DynamicService.ServiceName+" already exists!"))
 		return
 	}
 
 	blueprint, _, service, err := catalog.CreateDynamicService(req_json.DynamicService)
 	if err != nil {
 		logger.Error("[CreateAndRegisterDynamicService] CreateDynamicService fail!", err)
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
@@ -665,29 +666,29 @@ func (c *Context) CreateAndRegisterDynamicService(rw web.ResponseWriter, req *we
 	if req_json.UpdateBroker {
 		_, err = brokerConfig.CloudProvider.UpdateServiceBroker()
 		if err != nil {
-			Respond500(rw, err)
+			util.Respond500(rw, err)
 			return
 		}
 
 		//now register service using cli:
 		// cf enable-service-access your-service-name
 	}
-	WriteJson(rw, "", http.StatusCreated)
+	util.WriteJson(rw, "", http.StatusCreated)
 }
 
 func (c *Context) DeleteAndUnRegisterDynamicService(rw web.ResponseWriter, req *web.Request) {
 	req_json := DynamicServiceRequest{}
 
-	err := ReadJson(req, &req_json)
+	err := util.ReadJson(req, &req_json)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	service, err := catalog.GetServiceByName(req_json.DynamicService.ServiceName)
 	if err != nil {
 		logger.Error("[DeleteAndUnRegisterDynamicService] Delete DynamicService fail!", err)
-		WriteJson(rw, "", http.StatusGone)
+		util.WriteJson(rw, "", http.StatusGone)
 		return
 	}
 
@@ -698,11 +699,11 @@ func (c *Context) DeleteAndUnRegisterDynamicService(rw web.ResponseWriter, req *
 	if req_json.UpdateBroker {
 		_, err = brokerConfig.CloudProvider.UpdateServiceBroker()
 		if err != nil {
-			Respond500(rw, err)
+			util.Respond500(rw, err)
 			return
 		}
 	}
-	WriteJson(rw, "", http.StatusNoContent)
+	util.WriteJson(rw, "", http.StatusNoContent)
 
 }
 
@@ -712,16 +713,16 @@ func (c *Context) CheckPodsStatusForService(rw web.ResponseWriter, req *web.Requ
 
 	_, creds, err := brokerConfig.CreatorConnector.GetCluster(orgId)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	podsStates, err := brokerConfig.KubernetesApi.GetPodsStateByServiceId(creds, instanceId)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
-	WriteJson(rw, podsStates, http.StatusOK)
+	util.WriteJson(rw, podsStates, http.StatusOK)
 }
 
 func (c *Context) CheckPodsStatusForAllServicesInOrg(rw web.ResponseWriter, req *web.Request) {
@@ -729,16 +730,16 @@ func (c *Context) CheckPodsStatusForAllServicesInOrg(rw web.ResponseWriter, req 
 
 	_, creds, err := brokerConfig.CreatorConnector.GetCluster(orgId)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 
 	podsStates, err := brokerConfig.KubernetesApi.GetPodsStateForAllServices(creds)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
-	WriteJson(rw, podsStates, http.StatusOK)
+	util.WriteJson(rw, podsStates, http.StatusOK)
 }
 
 func (c *Context) GetSecret(rw web.ResponseWriter, req *web.Request) {
@@ -746,33 +747,33 @@ func (c *Context) GetSecret(rw web.ResponseWriter, req *web.Request) {
 	key := req.PathParams["key"]
 	_, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 	secret, err := brokerConfig.KubernetesApi.GetSecret(creds, key)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
-	WriteJson(rw, secret, http.StatusOK)
+	util.WriteJson(rw, secret, http.StatusOK)
 }
 
 func (c *Context) CreateSecret(rw web.ResponseWriter, req *web.Request) {
 	org := req.PathParams["org_id"]
 	_, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 	req_json := api.Secret{}
-	err = ReadJson(req, &req_json)
+	err = util.ReadJson(req, &req_json)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 	err = brokerConfig.KubernetesApi.CreateSecret(creds, req_json)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 	return
@@ -783,12 +784,12 @@ func (c *Context) DeleteSecret(rw web.ResponseWriter, req *web.Request) {
 	key := req.PathParams["key"]
 	_, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 	err = brokerConfig.KubernetesApi.DeleteSecret(creds, key)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 	return
@@ -798,19 +799,24 @@ func (c *Context) UpdateSecret(rw web.ResponseWriter, req *web.Request) {
 	org := req.PathParams["org_id"]
 	_, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 	req_json := api.Secret{}
-	err = ReadJson(req, &req_json)
+	err = util.ReadJson(req, &req_json)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 	err = brokerConfig.KubernetesApi.UpdateSecret(creds, req_json)
 	if err != nil {
-		Respond500(rw, err)
+		util.Respond500(rw, err)
 		return
 	}
 	return
+}
+
+func (c *Context) Error(rw web.ResponseWriter, r *web.Request, err interface{}) {
+	logger.Error("Respond500: reason: error ", err)
+	rw.WriteHeader(http.StatusInternalServerError)
 }

@@ -37,20 +37,20 @@ func (k *K8sCreatorConnector) DeleteCluster(org string) error {
 	}
 	return nil
 }
-func (k *K8sCreatorConnector) GetCluster(org string) (int, K8sClusterCredential, error) {
+func (k *K8sCreatorConnector) GetCluster(org string) (int, K8sClusterCredentials, error) {
 	url := k.Server + "/clusters/" + org
-	k8sCreatorPostClusterResponse := K8sClusterCredential{}
+	k8sCreatorPostClusterResponse := K8sClusterCredentials{}
 
 	logger.Info("[GetCluster] GetCluster on url: ", url)
 	status, resp, err := brokerHttp.RestGET(url, &brokerHttp.BasicAuth{k.Username, k.Password}, k.Client)
 
 	if status != 200 {
-		return status, K8sClusterCredential{}, errors.New("Cluster not exist!")
+		return status, K8sClusterCredentials{}, errors.New("Cluster not exist!")
 	}
 
 	err = json.Unmarshal(resp, &k8sCreatorPostClusterResponse)
 	if err != nil {
-		return status, K8sClusterCredential{}, err
+		return status, K8sClusterCredentials{}, err
 	}
 	return status, k8sCreatorPostClusterResponse, nil
 }
@@ -70,7 +70,7 @@ func (k *K8sCreatorConnector) PostCluster(org string) (int, error) {
 	return status, nil
 }
 
-func (k *K8sCreatorConnector) CreateSecretForPrivateTapRepo(creds K8sClusterCredential) error {
+func (k *K8sCreatorConnector) CreateSecretForPrivateTapRepo(creds K8sClusterCredentials) error {
 	c, err := k.KubernetesClient.GetNewClient(creds)
 	if err != nil {
 		return err
@@ -115,20 +115,20 @@ func (k *K8sCreatorConnector) checkIfClustersQuotaNotExeeded() error {
 	}
 }
 
-func (k *K8sCreatorConnector) GetClusters() ([]K8sClusterCredential, error) {
-	k8sCreatorGetClustersResponse := []K8sClusterCredential{}
+func (k *K8sCreatorConnector) GetClusters() ([]K8sClusterCredentials, error) {
+	k8sCreatorGetClustersResponse := []K8sClusterCredentials{}
 
 	_, resp, err := brokerHttp.RestGET(k.Server+"/clusters", &brokerHttp.BasicAuth{k.Username, k.Password}, k.Client)
 	logger.Debug("RESP: ", string(resp))
 	err = json.Unmarshal(resp, &k8sCreatorGetClustersResponse)
 	if err != nil {
 		logger.Error("[GetClusters] Error: ", err)
-		return []K8sClusterCredential{}, err
+		return []K8sClusterCredentials{}, err
 	}
 	return k8sCreatorGetClustersResponse, nil
 }
 
-func (k *K8sCreatorConnector) GetOrCreateCluster(org string) (K8sClusterCredential, error) {
+func (k *K8sCreatorConnector) GetOrCreateCluster(org string) (K8sClusterCredentials, error) {
 	wasCreated := false
 	for {
 		status, kresp, err := k.GetCluster(org)
@@ -150,19 +150,19 @@ func (k *K8sCreatorConnector) GetOrCreateCluster(org string) (K8sClusterCredenti
 				status, err = k.PostCluster(org)
 				if err != nil {
 					logger.Error("[GetOrCreateCluster] ERROR: PostCluster", err)
-					return K8sClusterCredential{}, err
+					return K8sClusterCredentials{}, err
 				} else if status == 409 {
-					return K8sClusterCredential{}, errors.New("UnExpected Cluster conflict")
+					return K8sClusterCredentials{}, errors.New("UnExpected Cluster conflict")
 				}
 				wasCreated = true
 			} else {
-				return K8sClusterCredential{}, errors.New("After creating CLuster bad response received")
+				return K8sClusterCredentials{}, errors.New("After creating CLuster bad response received")
 			}
 		} else if status == 204 {
 			logger.Info("[GetOrCreateCluster] Waiting for cluster to finish creating for org:", org)
 		} else if err != nil {
 			logger.Error("[GetOrCreateCluster] ERROR: GetCluster! We will not fetch/create requested cluster!", err)
-			return K8sClusterCredential{}, err
+			return K8sClusterCredentials{}, err
 		}
 		time.Sleep(30 * time.Second)
 	}

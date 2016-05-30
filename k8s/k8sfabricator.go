@@ -31,24 +31,24 @@ import (
 )
 
 type KubernetesApi interface {
-	FabricateService(creds K8sClusterCredential, space, cf_service_id, parameters string, ss state.StateService,
+	FabricateService(creds K8sClusterCredentials, space, cf_service_id, parameters string, ss state.StateService,
 		component *catalog.KubernetesComponent) (FabricateResult, error)
-	CheckKubernetesServiceHealthByServiceInstanceId(creds K8sClusterCredential, space, instance_id string) (bool, error)
-	DeleteAllByServiceId(creds K8sClusterCredential, service_id string) error
-	DeleteAllPersistentVolumeClaims(creds K8sClusterCredential) error
-	GetAllPersistentVolumes(creds K8sClusterCredential) ([]api.PersistentVolume, error)
-	GetAllPodsEnvsByServiceId(creds K8sClusterCredential, space, service_id string) ([]PodEnvs, error)
-	GetService(creds K8sClusterCredential, org, serviceId string) ([]api.Service, error)
-	GetServices(creds K8sClusterCredential, org string) ([]api.Service, error)
-	GetQuota(creds K8sClusterCredential, space string) (*api.ResourceQuotaList, error)
-	GetClusterWorkers(creds K8sClusterCredential) ([]string, error)
-	GetPodsStateByServiceId(creds K8sClusterCredential, service_id string) ([]PodStatus, error)
-	GetPodsStateForAllServices(creds K8sClusterCredential) (map[string][]PodStatus, error)
-	ListReplicationControllers(creds K8sClusterCredential) (*api.ReplicationControllerList, error)
-	GetSecret(creds K8sClusterCredential, key string) (*api.Secret, error)
-	CreateSecret(creds K8sClusterCredential, secret api.Secret) error
-	DeleteSecret(creds K8sClusterCredential, key string) error
-	UpdateSecret(creds K8sClusterCredential, secret api.Secret) error
+	CheckKubernetesServiceHealthByServiceInstanceId(creds K8sClusterCredentials, space, instance_id string) (bool, error)
+	DeleteAllByServiceId(creds K8sClusterCredentials, service_id string) error
+	DeleteAllPersistentVolumeClaims(creds K8sClusterCredentials) error
+	GetAllPersistentVolumes(creds K8sClusterCredentials) ([]api.PersistentVolume, error)
+	GetAllPodsEnvsByServiceId(creds K8sClusterCredentials, space, service_id string) ([]PodEnvs, error)
+	GetService(creds K8sClusterCredentials, org, serviceId string) ([]api.Service, error)
+	GetServices(creds K8sClusterCredentials, org string) ([]api.Service, error)
+	GetQuota(creds K8sClusterCredentials, space string) (*api.ResourceQuotaList, error)
+	GetClusterWorkers(creds K8sClusterCredentials) ([]string, error)
+	GetPodsStateByServiceId(creds K8sClusterCredentials, service_id string) ([]PodStatus, error)
+	GetPodsStateForAllServices(creds K8sClusterCredentials) (map[string][]PodStatus, error)
+	ListReplicationControllers(creds K8sClusterCredentials) (*api.ReplicationControllerList, error)
+	GetSecret(creds K8sClusterCredentials, key string) (*api.Secret, error)
+	CreateSecret(creds K8sClusterCredentials, secret api.Secret) error
+	DeleteSecret(creds K8sClusterCredentials, key string) error
+	UpdateSecret(creds K8sClusterCredentials, secret api.Secret) error
 }
 
 type K8Fabricator struct {
@@ -73,7 +73,7 @@ func NewK8Fabricator() *K8Fabricator {
 	return &K8Fabricator{KubernetesClient: &KubernetesRestCreator{}}
 }
 
-func (k *K8Fabricator) FabricateService(creds K8sClusterCredential, space, cf_service_id, parameters string,
+func (k *K8Fabricator) FabricateService(creds K8sClusterCredentials, space, cf_service_id, parameters string,
 	ss state.StateService, component *catalog.KubernetesComponent) (FabricateResult, error) {
 	result := FabricateResult{"", map[string]string{}}
 
@@ -161,7 +161,7 @@ func (k *K8Fabricator) FabricateService(creds K8sClusterCredential, space, cf_se
 	return result, nil
 }
 
-func (k *K8Fabricator) CheckKubernetesServiceHealthByServiceInstanceId(creds K8sClusterCredential, space, instance_id string) (bool, error) {
+func (k *K8Fabricator) CheckKubernetesServiceHealthByServiceInstanceId(creds K8sClusterCredentials, space, instance_id string) (bool, error) {
 	logger.Info("[CheckKubernetesServiceHealthByServiceInstanceId] serviceId:", instance_id)
 	// http://kubernetes.io/v1.1/docs/user-guide/liveness/README.html
 
@@ -186,7 +186,7 @@ func (k *K8Fabricator) CheckKubernetesServiceHealthByServiceInstanceId(creds K8s
 	return true, nil
 }
 
-func (k *K8Fabricator) DeleteAllByServiceId(creds K8sClusterCredential, service_id string) error {
+func (k *K8Fabricator) DeleteAllByServiceId(creds K8sClusterCredentials, service_id string) error {
 	logger.Info("[DeleteAllByServiceId] serviceId:", service_id)
 
 	c, selector, err := k.getKubernetesClientWithServiceIdSelector(creds, service_id)
@@ -274,7 +274,7 @@ func (k *K8Fabricator) DeleteAllByServiceId(creds K8sClusterCredential, service_
 	return nil
 }
 
-func (k *K8Fabricator) DeleteAllPersistentVolumeClaims(creds K8sClusterCredential) error {
+func (k *K8Fabricator) DeleteAllPersistentVolumeClaims(creds K8sClusterCredentials) error {
 
 	c, err := k.KubernetesClient.GetNewClient(creds)
 	if err != nil {
@@ -307,7 +307,7 @@ func (k *K8Fabricator) DeleteAllPersistentVolumeClaims(creds K8sClusterCredentia
 	}
 }
 
-func (k *K8Fabricator) GetAllPersistentVolumes(creds K8sClusterCredential) ([]api.PersistentVolume, error) {
+func (k *K8Fabricator) GetAllPersistentVolumes(creds K8sClusterCredentials) ([]api.PersistentVolume, error) {
 
 	c, err := k.KubernetesClient.GetNewClient(creds)
 	if err != nil {
@@ -324,7 +324,7 @@ func (k *K8Fabricator) GetAllPersistentVolumes(creds K8sClusterCredential) ([]ap
 	return pvList.Items, nil
 }
 
-func (k *K8Fabricator) GetService(creds K8sClusterCredential, org, serviceId string) ([]api.Service, error) {
+func (k *K8Fabricator) GetService(creds K8sClusterCredentials, org, serviceId string) ([]api.Service, error) {
 	logger.Info("[GetService] orgId:", org)
 	response := []api.Service{}
 
@@ -344,7 +344,7 @@ func (k *K8Fabricator) GetService(creds K8sClusterCredential, org, serviceId str
 	return serviceList.Items, nil
 }
 
-func (k *K8Fabricator) GetServices(creds K8sClusterCredential, org string) ([]api.Service, error) {
+func (k *K8Fabricator) GetServices(creds K8sClusterCredentials, org string) ([]api.Service, error) {
 	logger.Info("[GetServices] orgId:", org)
 	response := []api.Service{}
 
@@ -369,7 +369,7 @@ func (k *K8Fabricator) GetServices(creds K8sClusterCredential, org string) ([]ap
 	return serviceList.Items, nil
 }
 
-func (k *K8Fabricator) GetQuota(creds K8sClusterCredential, space string) (*api.ResourceQuotaList, error) {
+func (k *K8Fabricator) GetQuota(creds K8sClusterCredentials, space string) (*api.ResourceQuotaList, error) {
 	c, err := k.KubernetesClient.GetNewClient(creds)
 	if err != nil {
 		return nil, err
@@ -378,7 +378,7 @@ func (k *K8Fabricator) GetQuota(creds K8sClusterCredential, space string) (*api.
 	return c.ResourceQuotas(api.NamespaceDefault).List(api.ListOptions{})
 }
 
-func (k *K8Fabricator) GetClusterWorkers(creds K8sClusterCredential) ([]string, error) {
+func (k *K8Fabricator) GetClusterWorkers(creds K8sClusterCredentials) ([]string, error) {
 	c, err := k.KubernetesClient.GetNewClient(creds)
 	if err != nil {
 		return []string{}, err
@@ -397,7 +397,7 @@ func (k *K8Fabricator) GetClusterWorkers(creds K8sClusterCredential) ([]string, 
 	return workers, nil
 }
 
-func (k *K8Fabricator) ListReplicationControllers(creds K8sClusterCredential) (*api.ReplicationControllerList, error) {
+func (k *K8Fabricator) ListReplicationControllers(creds K8sClusterCredentials) (*api.ReplicationControllerList, error) {
 	c, err := k.KubernetesClient.GetNewClient(creds)
 	if err != nil {
 		return nil, err
@@ -417,7 +417,7 @@ type PodStatus struct {
 	StatusMessage string
 }
 
-func (k *K8Fabricator) GetPodsStateByServiceId(creds K8sClusterCredential, service_id string) ([]PodStatus, error) {
+func (k *K8Fabricator) GetPodsStateByServiceId(creds K8sClusterCredentials, service_id string) ([]PodStatus, error) {
 	result := []PodStatus{}
 
 	c, selector, err := k.getKubernetesClientWithServiceIdSelector(creds, service_id)
@@ -441,7 +441,7 @@ func (k *K8Fabricator) GetPodsStateByServiceId(creds K8sClusterCredential, servi
 	return result, nil
 }
 
-func (k *K8Fabricator) GetPodsStateForAllServices(creds K8sClusterCredential) (map[string][]PodStatus, error) {
+func (k *K8Fabricator) GetPodsStateForAllServices(creds K8sClusterCredentials) (map[string][]PodStatus, error) {
 	result := map[string][]PodStatus{}
 
 	c, err := k.KubernetesClient.GetNewClient(creds)
@@ -478,7 +478,7 @@ type ServiceCredential struct {
 	Ports []api.ServicePort
 }
 
-func (k *K8Fabricator) GetSecret(creds K8sClusterCredential, key string) (*api.Secret, error) {
+func (k *K8Fabricator) GetSecret(creds K8sClusterCredentials, key string) (*api.Secret, error) {
 	secret := &api.Secret{}
 	c, err := k.KubernetesClient.GetNewClient(creds)
 	if err != nil {
@@ -491,7 +491,7 @@ func (k *K8Fabricator) GetSecret(creds K8sClusterCredential, key string) (*api.S
 	return result, nil
 }
 
-func (k *K8Fabricator) CreateSecret(creds K8sClusterCredential, secret api.Secret) error {
+func (k *K8Fabricator) CreateSecret(creds K8sClusterCredentials, secret api.Secret) error {
 	c, err := k.KubernetesClient.GetNewClient(creds)
 	if err != nil {
 		return err
@@ -503,7 +503,7 @@ func (k *K8Fabricator) CreateSecret(creds K8sClusterCredential, secret api.Secre
 	return nil
 }
 
-func (k *K8Fabricator) DeleteSecret(creds K8sClusterCredential, key string) error {
+func (k *K8Fabricator) DeleteSecret(creds K8sClusterCredentials, key string) error {
 	c, err := k.KubernetesClient.GetNewClient(creds)
 	if err != nil {
 		return err
@@ -515,7 +515,7 @@ func (k *K8Fabricator) DeleteSecret(creds K8sClusterCredential, key string) erro
 	return nil
 }
 
-func (k *K8Fabricator) UpdateSecret(creds K8sClusterCredential, secret api.Secret) error {
+func (k *K8Fabricator) UpdateSecret(creds K8sClusterCredentials, secret api.Secret) error {
 	c, err := k.KubernetesClient.GetNewClient(creds)
 	if err != nil {
 		return err
@@ -537,7 +537,7 @@ type ContainerSimple struct {
 	Envs map[string]string
 }
 
-func (k *K8Fabricator) GetAllPodsEnvsByServiceId(creds K8sClusterCredential, space, service_id string) ([]PodEnvs, error) {
+func (k *K8Fabricator) GetAllPodsEnvsByServiceId(creds K8sClusterCredentials, space, service_id string) ([]PodEnvs, error) {
 	logger.Info("[GetEnvFromReplicationControllerByServiceIdLabel] serviceId:", service_id)
 	result := []PodEnvs{}
 
@@ -606,7 +606,7 @@ func findSecretValue(secrets *api.SecretList, secret_key string) string {
 	return ""
 }
 
-func (k *K8Fabricator) getKubernetesClientWithServiceIdSelector(creds K8sClusterCredential, serviceId string) (KubernetesClient, labels.Selector, error) {
+func (k *K8Fabricator) getKubernetesClientWithServiceIdSelector(creds K8sClusterCredentials, serviceId string) (KubernetesClient, labels.Selector, error) {
 	selector, err := getSelectorForServiceIdLabel(serviceId)
 	if err != nil {
 		return nil, selector, err
