@@ -54,6 +54,7 @@ function prepare_pgpool_conf {
     cd ${PGPOOL_CONF_HOME} &&
     #generate pool_passwd
     pg_md5 -u ${REPLICATION_USER} ${REPLICATION_PASS} -m -f ${PGPOOL_CONF_HOME}/pgpool.conf &&
+    pg_md5 -u ${DB_USER} ${DB_PASS} -m -f ${PGPOOL_CONF_HOME}/pgpool.conf &&
     #generate pcp.conf
     echo ${REPLICATION_USER}:`pg_md5 ${REPLICATION_PASS}` > ${PGPOOL_CONF_HOME}/pcp.conf &&
     #enable access to all db from remote host for REPLICATION_USER, with password
