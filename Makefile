@@ -69,7 +69,7 @@ login:
 
 push: build
 	test -d "application" || mkdir application
-	cp -Rf $(GOBIN)/kubernetes-broker application
+	cp -Rf $(GOBIN)/tap application/kubernetes-broker
 	./scripts/cf-push.sh
 
 logf:
