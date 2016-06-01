@@ -1,0 +1,1 @@
+mysql:loadbalance://$env_MYSQL_USERNAME:$env_MYSQL_PASSWORD@$hostname:$port_3306/$env_MYSQL_DATABASE

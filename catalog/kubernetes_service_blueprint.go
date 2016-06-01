@@ -37,6 +37,7 @@ type KubernetesBlueprint struct {
 	PersistentVolumeClaim     []string
 	CredentialsMapping        string
 	ReplicaTemplate           string
+	UriTemplate               string
 }
 
 type KubernetesComponent struct {
@@ -164,13 +165,13 @@ func GetKubernetesBlueprintByServiceAndPlan(catalogPath string, svcMeta ServiceM
 	secrets_path := svc_path + "secretTemplates/"
 	k8s_plan_path := plan_path + "k8s/"
 
-	result.PersistentVolumeClaim, err = read_k8s_files_with_prefix_from_dir(k8s_plan_path, "persistentvolumeclaim")
+	result.PersistentVolumeClaim, err = read_k8s_json_files_with_prefix_from_dir(k8s_plan_path, "persistentvolumeclaim")
 	if err != nil {
 		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading Replication Controller file", err)
 		return result, err
 	}
 
-	result.SecretsJson, err = read_k8s_files_with_prefix_from_dir(k8s_plan_path, "secret")
+	result.SecretsJson, err = read_k8s_json_files_with_prefix_from_dir(k8s_plan_path, "secret")
 	if err != nil {
 		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading secret files", err)
 		return result, err
@@ -194,34 +195,39 @@ func GetKubernetesBlueprintByServiceAndPlan(catalogPath string, svcMeta ServiceM
 			}
 		}
 	}
-
-	result.ReplicationControllerJson, err = read_k8s_files_with_prefix_from_dir(k8s_plan_path, "replicationcontroller")
+	result.ReplicationControllerJson, err = read_k8s_json_files_with_prefix_from_dir(k8s_plan_path, "replicationcontroller")
 	if err != nil {
 		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading Replication Controller file", err)
 		return result, err
 	}
 
-	result.ServiceJson, err = read_k8s_files_with_prefix_from_dir(k8s_plan_path, "service")
+	result.ServiceJson, err = read_k8s_json_files_with_prefix_from_dir(k8s_plan_path, "service")
 	if err != nil {
 		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading service file", err)
 		return result, err
 	}
 
-	result.ServiceAcccountJson, err = read_k8s_files_with_prefix_from_dir(k8s_plan_path, "account")
+	result.ServiceAcccountJson, err = read_k8s_json_files_with_prefix_from_dir(k8s_plan_path, "account")
 	if err != nil {
 		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading account file", err)
 		return result, err
 	}
 
-	credentialMappings, err := read_k8s_files_with_prefix_from_dir(plan_path, "credentials-mappings")
+	credentialMappings, err := read_k8s_json_files_with_prefix_from_dir(plan_path, "credentials-mappings")
 	if err != nil {
 		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading credential mappings file", err)
 		return result, err
 	}
 
-	replicas, err := read_k8s_files_with_prefix_from_dir(plan_path, "node_template")
+	replicas, err := read_k8s_json_files_with_prefix_from_dir(plan_path, "node_template")
 	if err != nil {
 		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading replica template files", svc_path)
+		return result, err
+	}
+
+	uriTemplate, err := read_k8s_files_with_prefix_from_dir(plan_path, "uri_cluster_template")
+	if err != nil {
+		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading uri template files", svc_path)
 		return result, err
 	}
 
@@ -233,6 +239,9 @@ func GetKubernetesBlueprintByServiceAndPlan(catalogPath string, svcMeta ServiceM
 	}
 	if len(replicas) > 0 {
 		result.ReplicaTemplate = string(replicas[0])
+	}
+	if len(uriTemplate) > 0 {
+		result.UriTemplate = string(uriTemplate[0])
 	}
 	return result, nil
 }
@@ -282,7 +291,15 @@ func get_random_string(n int) string {
 	return string(b)
 }
 
+func read_k8s_json_files_with_prefix_from_dir(path, prefix string) ([]string, error) {
+	return read_k8s_files_with_prefix_suffix_from_dir(path, prefix, ".json")
+}
+
 func read_k8s_files_with_prefix_from_dir(path, prefix string) ([]string, error) {
+	return read_k8s_files_with_prefix_suffix_from_dir(path, prefix, "")
+}
+
+func read_k8s_files_with_prefix_suffix_from_dir(path, prefix string, suffix string) ([]string, error) {
 	logger.Debug("read_k8s_files_with_prefix_from_dir", path, prefix)
 	results := []string{}
 	file_in_path, err := ioutil.ReadDir(path)
@@ -291,7 +308,7 @@ func read_k8s_files_with_prefix_from_dir(path, prefix string) ([]string, error) 
 		return results, err
 	}
 	for _, f := range file_in_path {
-		if strings.HasPrefix(f.Name(), prefix) && strings.HasSuffix(f.Name(), ".json") {
+		if strings.HasPrefix(f.Name(), prefix) && strings.HasSuffix(f.Name(), suffix) {
 			fcontent, err := ioutil.ReadFile(path + "/" + f.Name())
 			if err != nil {
 				logger.Error("[read_k8s_files_with_prefix_from_dir] Error reading file:", fcontent, err)

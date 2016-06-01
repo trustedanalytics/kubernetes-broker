@@ -31,35 +31,37 @@ import (
 func ParseCredentialMappingAdvanced(serviceMetaName string, svcCreds []ServiceCredential, pods []k8s.PodEnvs,
 	blueprint catalog.KubernetesBlueprint) (string, error) {
 	var err error = nil
-	var parsedMapping string
 
-	if blueprint.ReplicaTemplate != "" {
-		parsedMapping, err = parseSvcCredsForClusteredPlan(blueprint, svcCreds)
+	parsedMapping := blueprint.CredentialsMapping
+
+	if blueprint.UriTemplate != "" || blueprint.ReplicaTemplate != "" {
+		parsedMapping, err = parseUriClusteredPlan(blueprint.UriTemplate, parsedMapping, svcCreds)
+		if err != nil {
+			return "", err
+		}
+		parsedMapping, err = parseSvcCredsForClusteredPlan(blueprint.ReplicaTemplate, parsedMapping, svcCreds)
 		if err != nil {
 			return "", err
 		}
 	} else {
-		parsedMapping, err = parseSvcCredsForSimplePlan(blueprint.CredentialsMapping, svcCreds)
+		parsedMapping, err = parseSvcCredsForSimplePlan(parsedMapping, svcCreds)
 		if err != nil {
 			return "", err
 		}
 	}
 
 	parsedMapping = strings.Replace(parsedMapping, "$name", serviceMetaName, -1)
-
-	//TODO why we put this?
-	parsedMapping = strings.Replace(parsedMapping, "$uri", "NOTSUPPORTED://yet", -1)
 	parsedMapping = parseEnvs(parsedMapping, pods)
 
 	return parsedMapping, nil
 }
 
-func parseSvcCredsForClusteredPlan(blueprint catalog.KubernetesBlueprint, svcCreds []ServiceCredential) (string, error) {
+func parseSvcCredsForClusteredPlan(replicaTemplate string, credentialsMapping string, svcCreds []ServiceCredential) (string, error) {
 	var err error = nil
 	parsedReplicas := []string{}
 
 	for _, svc := range svcCreds {
-		templateToParse := blueprint.ReplicaTemplate
+		templateToParse := replicaTemplate
 
 		templateToParse = strings.Replace(templateToParse, "$hostname", svc.Host, -1)
 		templateToParse = strings.Replace(templateToParse, "$nodeName", svc.Name, -1)
@@ -70,8 +72,32 @@ func parseSvcCredsForClusteredPlan(blueprint catalog.KubernetesBlueprint, svcCre
 		parsedReplicas = append(parsedReplicas, templateToParse)
 	}
 
-	parsedMapping := blueprint.CredentialsMapping
+	parsedMapping := credentialsMapping
 	parsedMapping = strings.Replace(parsedMapping, "$nodes", strings.Join(parsedReplicas, ","), -1)
+	return parsedMapping, nil
+}
+
+func parseUriClusteredPlan(uriTemplate string, credentialsMapping string, svcCreds []ServiceCredential) (string, error) {
+	hostsWithPorts := []string{}
+	//build host:port for all services
+	for _, svc := range svcCreds {
+
+		port, err := getPort(uriTemplate, svc.Ports)
+		if err != nil {
+			return "", err
+		}
+		hostWithPort := svc.Host + ":" + port
+
+		hostsWithPorts = append(hostsWithPorts, hostWithPort)
+
+	}
+
+	var re = regexp.MustCompile(`\$hostname:\$port_[0-9]+`)
+	uriTemplate = re.ReplaceAllString(uriTemplate, strings.Join(hostsWithPorts, ","))
+
+	logger.Info("hostsWithPorts: ", strings.Join(hostsWithPorts, ","))
+
+	parsedMapping := strings.Replace(credentialsMapping, "$uri", uriTemplate, -1)
 	return parsedMapping, nil
 }
 
@@ -112,9 +138,22 @@ func parseEnvs(templateToParse string, pods []k8s.PodEnvs) string {
 }
 
 func parsePorts(templateToParse string, ports []api.ServicePort) (string, error) {
-	var re = regexp.MustCompile(`\$port_[0-9]+`)
-	parsed_ports_list := re.FindAllString(templateToParse, -1)
+	parsed_ports_list := splitPortsFromTemplate(templateToParse)
 	logger.Debug("$port_ variables: ", parsed_ports_list)
+
+	for _, parsed_port := range parsed_ports_list {
+		port, err := getPort(templateToParse, ports)
+		if err != nil {
+			return "", err
+		}
+
+		templateToParse = strings.Replace(templateToParse, parsed_port, port, -1)
+	}
+	return templateToParse, nil
+}
+
+func getPort(templateToParse string, ports []api.ServicePort) (string, error) {
+	parsed_ports_list := splitPortsFromTemplate(templateToParse)
 
 	for _, parsed_port := range parsed_ports_list {
 		expected_port_num_strs := strings.Split(parsed_port, "_")
@@ -131,12 +170,16 @@ func parsePorts(templateToParse string, ports []api.ServicePort) (string, error)
 				return "", errors.New("Parsing error: TargetPort value has incorrect fromat " + p.TargetPort.String())
 			}
 			if target_port_int == expected_port_num_int {
-				templateToParse = strings.Replace(templateToParse, parsed_port, strconv.Itoa(p.NodePort), -1)
-				continue
+				return strconv.Itoa(p.NodePort), nil
 			}
 		}
 	}
-	return templateToParse, nil
+	return "", nil
+}
+
+func splitPortsFromTemplate(templateToParse string) []string {
+	var re = regexp.MustCompile(`\$port_[0-9]+`)
+	return re.FindAllString(templateToParse, -1)
 }
 
 func appendMaps(source, newMap map[string]string) map[string]string {
