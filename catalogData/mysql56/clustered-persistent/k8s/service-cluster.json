@@ -21,8 +21,7 @@
     "ports": [
       {
         "protocol": "TCP",
-        "port": 3306,
-        "name": "mysql"
+        "port": 3306
       }
     ]
   }
