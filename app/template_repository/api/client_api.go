@@ -18,7 +18,9 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/trustedanalytics/kubernetes-broker/catalog"
 	brokerHttp "github.com/trustedanalytics/kubernetes-broker/http"
@@ -59,13 +61,16 @@ func NewTemplateRepositoryCa(address, username, password, certPemFile, keyPemFil
 
 func (t *TemplateRepositoryConnector) GetCatalog() (catalog.ServicesMetadata, error) {
 	url := t.Address + "/catalog"
-	_, body, err := brokerHttp.RestGET(url, &brokerHttp.BasicAuth{t.Username, t.Password}, t.Client)
+	status, body, err := brokerHttp.RestGET(url, &brokerHttp.BasicAuth{t.Username, t.Password}, t.Client)
 
 	services := catalog.ServicesMetadata{}
 	err = json.Unmarshal(body, &services)
 	if err != nil {
 		logger.Error("GetCatalog error:", err)
 		return services, err
+	}
+	if status != http.StatusOK {
+		return services, errors.New("Bad response status: " + strconv.Itoa(status) + ". Body: " + string(body))
 	}
 	return services, nil
 }
@@ -80,11 +85,14 @@ func (t *TemplateRepositoryConnector) GenerateParsedTemplate(request GeneratePar
 		return component, err
 	}
 
-	_, body, err = brokerHttp.RestPOST(url, string(body), &brokerHttp.BasicAuth{t.Username, t.Password}, t.Client)
+	status, body, err := brokerHttp.RestPOST(url, string(body), &brokerHttp.BasicAuth{t.Username, t.Password}, t.Client)
 	err = json.Unmarshal(body, &component)
 	if err != nil {
 		logger.Error("GenerateParsedTemplate unmarshall response error:", err)
 		return component, err
+	}
+	if status != http.StatusOK {
+		return component, errors.New("Bad response status: " + strconv.Itoa(status) + ". Body: " + string(body))
 	}
 	return component, nil
 }
@@ -97,7 +105,10 @@ func (t *TemplateRepositoryConnector) CreateAndRegisterDynamicService(dynamicSer
 		return err
 	}
 
-	_, _, err = brokerHttp.RestPUT(url, string(body), &brokerHttp.BasicAuth{t.Username, t.Password}, t.Client)
+	status, body, err := brokerHttp.RestPUT(url, string(body), &brokerHttp.BasicAuth{t.Username, t.Password}, t.Client)
+	if status != http.StatusCreated {
+		return errors.New("Bad response status: " + strconv.Itoa(status) + ". Body: " + string(body))
+	}
 	return err
 }
 
@@ -109,6 +120,9 @@ func (t *TemplateRepositoryConnector) DeleteAndUnregisterDynamicService(dynamicS
 		return err
 	}
 
-	_, _, err = brokerHttp.RestDELETE(url, string(body), &brokerHttp.BasicAuth{t.Username, t.Password}, t.Client)
+	status, body, err := brokerHttp.RestDELETE(url, string(body), &brokerHttp.BasicAuth{t.Username, t.Password}, t.Client)
+	if status != http.StatusOK {
+		return errors.New("Bad response status: " + strconv.Itoa(status) + ". Body: " + string(body))
+	}
 	return err
 }

@@ -30,10 +30,10 @@ import (
 )
 
 type Config struct {
-	StateService         state.StateService
-	KubernetesApi        k8s.KubernetesApi
-	TemplateRepository   api.TemplateRepository
-	K8sClusterCredential k8s.K8sClusterCredentials
+	StateService          state.StateService
+	KubernetesApi         k8s.KubernetesApi
+	TemplateRepository    api.TemplateRepository
+	K8sClusterCredentials k8s.K8sClusterCredentials
 }
 
 type Context struct{}
@@ -81,7 +81,7 @@ func (c *Context) CreateServiceInstance(rw web.ResponseWriter, req *web.Request)
 	}
 	BrokerConfig.StateService.ReportProgress(req_json.Uuid, "IN_PROGRESS_BLUEPRINT_OK", nil)
 
-	_, err = BrokerConfig.KubernetesApi.FabricateService(BrokerConfig.K8sClusterCredential, req_json.SpaceId,
+	_, err = BrokerConfig.KubernetesApi.FabricateService(BrokerConfig.K8sClusterCredentials, req_json.SpaceId,
 		req_json.Uuid, "", BrokerConfig.StateService, &component)
 	if err != nil {
 		BrokerConfig.StateService.ReportProgress(req_json.Uuid, "FAILED", err)
@@ -95,7 +95,7 @@ func (c *Context) CreateServiceInstance(rw web.ResponseWriter, req *web.Request)
 func (c *Context) DeleteServiceInstance(rw web.ResponseWriter, req *web.Request) {
 	instance_id := req.PathParams["instance_id"]
 
-	err := BrokerConfig.KubernetesApi.DeleteAllByServiceId(BrokerConfig.K8sClusterCredential, instance_id)
+	err := BrokerConfig.KubernetesApi.DeleteAllByServiceId(BrokerConfig.K8sClusterCredentials, instance_id)
 	if err != nil {
 		util.Respond500(rw, err)
 		return

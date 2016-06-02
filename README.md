@@ -138,24 +138,25 @@ One can use own image to provide new service offering in catalog. For now there 
 (all information are in memory of broker till it restarts). More information how to add such offerings can be found
 [here](catalog/README.md)
 
-## Docker Microservices
+## Template-repository and Container-broker Microservices
 
-* To build Template-repository microservice run:
+To run microservices on Kuberentes, following steps are required:
+
+* build docker images:
     ```
     make docker_build_template_repository
+    make docker_build_container_broker
     ```
-
-    To run created docker image call:
+* crete Template-repository service:
     ```
-    docker run tap/template_repository
+    kubectl create -f app/template_repository/service.json
     ```
-
-    To run created docker image with custom envs, use:
+* crete Template-repository replication controller and wait until pod status will be 'running':
     ```
-    docker run -e BROKER_LOG_LEVEL='WARN' tap/template_repository
+    kubectl create -f app/template_repository/replication_controller.json
+    kubectl get pod
     ```
-
-    Default values can be found in [Template-repository Dockerfile](app/template_repository/Dockerfile)
-
-* To build Container-broker microservice run use same commands as above with "container_broker" param instead of "template_repository"
-    [Container-broker Dockerfile](app/container_broker/Dockerfile)
+* crete Container-broker replication controller:
+    ```
+    kubectl create -f app/container_broker/replication_controller.json
+    ```

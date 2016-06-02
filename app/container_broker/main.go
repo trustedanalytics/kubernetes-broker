@@ -17,10 +17,10 @@
 package main
 
 import (
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/gocraft/web"
 
@@ -36,6 +36,8 @@ type appHandler func(web.ResponseWriter, *web.Request) error
 var logger = logger_wrapper.InitLogger("main")
 
 func main() {
+	initServices()
+
 	r := web.New(api.Context{})
 	r.Middleware(web.LoggerMiddleware)
 	r.Middleware((*api.Context).CheckBrokerConfig)
@@ -52,8 +54,6 @@ func main() {
 		logger.Critical("Couldn't read env CONTAINER_BROKER_SSL_ACTIVE!", err)
 	}
 
-	initServices(isSSLEnabled)
-
 	if isSSLEnabled {
 		err = http.ListenAndServeTLS(":"+port, os.Getenv("CONTAINER_BROKER_SSL_CERT_FILE_LOCATION"),
 			os.Getenv("CONTAINER_BROKER_SSL_KEY_FILE_LOCATION"), r)
@@ -66,27 +66,8 @@ func main() {
 	}
 }
 
-func initServices(isSSLEnabled bool) {
-	var templateRepositoryConnector *templateRepositoryApi.TemplateRepositoryConnector
-	var err error
-
-	if isSSLEnabled {
-		templateRepositoryConnector, err = templateRepositoryApi.NewTemplateRepositoryCa(
-			"https://localhost:"+os.Getenv("TEMPLATE_REPOSITORY_PORT"),
-			os.Getenv("TEMPLATE_REPOSITORY_USER"),
-			os.Getenv("TEMPLATE_REPOSITORY_PASS"),
-			os.Getenv("TEMPLATE_REPOSITORY_SSL_CERT_FILE_LOCATION"),
-			os.Getenv("TEMPLATE_REPOSITORY_SSL_KEY_FILE_LOCATION"),
-			os.Getenv("TEMPLATE_REPOSITORY_SSL_CA_FILE_LOCATION"),
-		)
-	} else {
-		templateRepositoryConnector, err = templateRepositoryApi.NewTemplateRepositoryBasicAuth(
-			"https://localhost:"+os.Getenv("TEMPLATE_REPOSITORY_PORT"),
-			os.Getenv("TEMPLATE_REPOSITORY_USER"),
-			os.Getenv("TEMPLATE_REPOSITORY_PASS"),
-		)
-	}
-
+func initServices() {
+	templateRepositoryConnector, err := getTemplateRepositoryConnector()
 	if err != nil {
 		logger.Fatal("Can't connect with TAP-NG template provider!", err)
 	}
@@ -95,47 +76,45 @@ func initServices(isSSLEnabled bool) {
 	api.BrokerConfig.StateService = &state.StateMemoryService{}
 	api.BrokerConfig.KubernetesApi = k8s.NewK8Fabricator()
 	api.BrokerConfig.TemplateRepository = templateRepositoryConnector
-	api.BrokerConfig.K8sClusterCredential = k8s.K8sClusterCredentials{
+	api.BrokerConfig.K8sClusterCredentials = k8s.K8sClusterCredentials{
 		Server:   os.Getenv("K8S_API_ADDRESS"),
 		Username: os.Getenv("K8S_API_USERNAME"),
 		Password: os.Getenv("K8S_API_PASSWORD"),
 	}
+}
 
-	isKubernetesSSLEnabled, err := strconv.ParseBool(os.Getenv("KUBE_SSL_ACTIVE"))
+func getTemplateRepositoryConnector() (*templateRepositoryApi.TemplateRepositoryConnector, error) {
+	isSSLEnabled, err := strconv.ParseBool(os.Getenv("TEMPLATE_REPOSITORY_SSL_ACTIVE"))
 	if err != nil {
-		logger.Critical("Couldn't read env KUBE_SSL_ACTIVE!", err)
+		logger.Critical("Couldn't read env TEMPLATE_REPOSITORY_SSL_ACTIVE!", err)
 	}
-
-	if isKubernetesSSLEnabled {
-		cert, key, ca, err := loadSSLCertsFromFile(
-			os.Getenv("K8S_API_CERT_PEM_STRING"),
-			os.Getenv("K8S_API_KEY_PEM_STRING"),
-			os.Getenv("K8S_API_CA_PEM_STRING"),
+	address := getTemplateRepostoryAddress()
+	if isSSLEnabled {
+		return templateRepositoryApi.NewTemplateRepositoryCa(
+			"https://"+address,
+			os.Getenv("TEMPLATE_REPOSITORY_USER"),
+			os.Getenv("TEMPLATE_REPOSITORY_PASS"),
+			os.Getenv("TEMPLATE_REPOSITORY_SSL_CERT_FILE_LOCATION"),
+			os.Getenv("TEMPLATE_REPOSITORY_SSL_KEY_FILE_LOCATION"),
+			os.Getenv("TEMPLATE_REPOSITORY_SSL_CA_FILE_LOCATION"),
 		)
-		if err != nil {
-			logger.Fatal("Can't load Kuberentes SSL cert files!", err)
-		}
-		api.BrokerConfig.K8sClusterCredential.AdminCert = cert
-		api.BrokerConfig.K8sClusterCredential.AdminKey = key
-		api.BrokerConfig.K8sClusterCredential.CaCert = ca
+	} else {
+		return templateRepositoryApi.NewTemplateRepositoryBasicAuth(
+			"http://"+address,
+			os.Getenv("TEMPLATE_REPOSITORY_USER"),
+			os.Getenv("TEMPLATE_REPOSITORY_PASS"),
+		)
 	}
 }
 
-//TODO we should rerfactor K8sClusterCredential to accept files instead strings
-func loadSSLCertsFromFile(certPemFile, keyPemFile, caPemFile string) (string, string, string, error) {
-	certPemByte, err := ioutil.ReadFile(certPemFile)
-	if err != nil {
-		return "", "", "", err
+func getTemplateRepostoryAddress() string {
+	templateRepositoryServiceName := os.Getenv("TEMPLATE_REPOSITORY_KUBERNETES_SERVICE_NAME")
+	if templateRepositoryServiceName != "" {
+		templateRepositoryHostName := os.Getenv(strings.ToUpper(templateRepositoryServiceName) + "_SERVICE_HOST")
+		if templateRepositoryHostName != "" {
+			templateRepositoryPort := os.Getenv(strings.ToUpper(templateRepositoryServiceName) + "_SERVICE_PORT")
+			return templateRepositoryHostName + ":" + templateRepositoryPort
+		}
 	}
-
-	keyPemByte, err := ioutil.ReadFile(keyPemFile)
-	if err != nil {
-		return "", "", "", err
-	}
-
-	caPemByte, err := ioutil.ReadFile(caPemFile)
-	if err != nil {
-		return "", "", "", err
-	}
-	return string(certPemByte), string(keyPemByte), string(caPemByte), nil
+	return "localhost" + ":" + os.Getenv("TEMPLATE_REPOSITORY_PORT")
 }

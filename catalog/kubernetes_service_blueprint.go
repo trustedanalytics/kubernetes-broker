@@ -189,7 +189,7 @@ func GetKubernetesBlueprintByServiceAndPlan(catalogPath string, svcMeta ServiceM
 		if secretTemplatesExists {
 			result.SecretsJson, err = read_k8s_files_with_prefix_from_dir(secrets_path, "secret")
 			if err != nil {
-				logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading secret files " +
+				logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading secret files "+
 					"from secretTemplates path", err)
 				return result, err
 			}

@@ -66,7 +66,12 @@ type KubernetesTestCreator struct {
 var logger = logger_wrapper.InitLogger("k8s")
 
 func (k *KubernetesRestCreator) GetNewClient(creds K8sClusterCredentials) (KubernetesClient, error) {
-	return getKubernetesClient(creds)
+	if creds.Server == "" {
+		// get default K8s api client from same cluster as pod's
+		return k8sClient.NewInCluster()
+	} else {
+		return getKubernetesClient(creds)
+	}
 }
 
 func getKubernetesClient(creds K8sClusterCredentials) (KubernetesClient, error) {
