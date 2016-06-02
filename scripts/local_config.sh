@@ -13,13 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-export TEMPLATE_REPOSITORY_ADDRESS="0.0.0.0:8082"
+export TEMPLATE_REPOSITORY_PORT="8082"
 export TEMPLATE_REPOSITORY_USER="admin"
 export TEMPLATE_REPOSITORY_PASS="password"
+export TEMPLATE_REPOSITORY_SSL_ACTIVE="false"
+export TEMPLATE_REPOSITORY_SSL_CERT_FILE_LOCATION="cert.pem"
+export TEMPLATE_REPOSITORY_SSL_KEY_FILE_LOCATION="key.pem"
+export TEMPLATE_REPOSITORY_SSL_CA_FILE_LOCATION="ca.pem"
 
-export CONTAINER_BROKER_ADDRESS="0.0.0.0:8081"
+export CONTAINER_BROKER_PORT="8081"
 export CONTAINER_BROKER_USER="admin"
 export CONTAINER_BROKER_PASS="password"
+export CONTAINER_BROKER_SSL_ACTIVE="false"
+export CONTAINER_BROKER_SSL_CERT_FILE_LOCATION="cert.pem"
+export CONTAINER_BROKER_SSL_KEY_FILE_LOCATION="key.pem"
 
 export K8S_API_ADDRESS="http://localhost:8080"
 export K8S_API_USERNAME=""

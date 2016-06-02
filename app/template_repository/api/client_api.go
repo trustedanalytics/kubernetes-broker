@@ -41,8 +41,16 @@ type TemplateRepositoryConnector struct {
 
 var logger = logger_wrapper.InitLogger("api")
 
-func NewTemplateRepository(address, username, password string) (*TemplateRepositoryConnector, error) {
+func NewTemplateRepositoryBasicAuth(address, username, password string) (*TemplateRepositoryConnector, error) {
 	client, _, err := brokerHttp.GetHttpClientWithBasicAuth()
+	if err != nil {
+		return nil, err
+	}
+	return &TemplateRepositoryConnector{address, username, password, client}, nil
+}
+
+func NewTemplateRepositoryCa(address, username, password, certPemFile, keyPemFile, caPemFile string) (*TemplateRepositoryConnector, error) {
+	client, _, err := brokerHttp.GetHttpClientWithCertAndCaFromFile(certPemFile, keyPemFile, caPemFile)
 	if err != nil {
 		return nil, err
 	}

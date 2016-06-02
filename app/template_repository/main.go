@@ -20,6 +20,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gocraft/web"
@@ -50,11 +51,23 @@ func main() {
 	r.Put("/dynamicservice", (*api.Context).CreateAndRegisterDynamicService)
 	r.Delete("/dynamicservice", (*api.Context).DeleteAndUnregisterDynamicService)
 
-	address := os.Getenv("TEMPLATE_REPOSITORY_ADDRESS")
-	logger.Info("Will listen on:", address)
-	err := http.ListenAndServe(address, r)
+	port := os.Getenv("TEMPLATE_REPOSITORY_PORT")
+	logger.Info("Will listen on:", port)
+
+	isSSLEnabled, err := strconv.ParseBool(os.Getenv("TEMPLATE_REPOSITORY_SSL_ACTIVE"))
 	if err != nil {
-		logger.Critical("Couldn't serve app on address: ", address, " Application will be closed now.")
+		logger.Critical("Couldn't read env TEMPLATE_REPOSITORY_SSL_ACTIVE!", err)
+	}
+
+	if isSSLEnabled {
+		err = http.ListenAndServeTLS(":"+port, os.Getenv("TEMPLATE_REPOSITORY_SSL_CERT_FILE_LOCATION"),
+			os.Getenv("TEMPLATE_REPOSITORY_SSL_KEY_FILE_LOCATION"), r)
+	} else {
+		err = http.ListenAndServe(":"+port, r)
+	}
+
+	if err != nil {
+		logger.Critical("Couldn't serve app on port:", port, " Error:", err)
 	}
 }
 

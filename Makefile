@@ -7,11 +7,31 @@ VERSION=$(PROJECT_VERSION)
 all: build
 
 build: bin/app
-	@echo "build complete."
+	rm -Rf application && mkdir application
+	cp -Rf $(GOBIN)/tap application/kubernetes-broker
+
+build_ms: bin/app
+	rm -Rf application && mkdir application
+	cp -Rf $(GOBIN)/container_broker application/
+	cp -Rf $(GOBIN)/template_repository application/
 
 bin/app: verify_gopath
 	CGO_ENABLED=0 go install -tags netgo $(APP_DIR_LIST)
 	go fmt $(APP_DIR_LIST)
+
+docker_build_template_repository: build_ms
+	cp -f application/template_repository app/template_repository/template_repository
+	cp -Rf catalogData app/template_repository/catalogData
+	docker build -t tap/template_repository app/template_repository
+	rm -f app/template_repository/template_repository
+	rm -Rf app/template_repository/catalogData
+
+docker_build_container_broker: build_ms
+	cp -f application/container_broker app/container_broker/container_broker
+	cp -Rf catalogData app/container_broker/catalogData
+	docker build -t tap/container_broker app/container_broker
+	rm -f app/container_broker/container_broker
+	rm -Rf app/container_broker/catalogData
 
 local_bin/app: verify_gopath
 	CGO_ENABLED=0 go install -tags local $(APP_DIR_LIST)
@@ -70,11 +90,6 @@ verify_gopath:
 login:
 	cf login -a https://api.gotapaas.eu
 
-push: build
-	test -d "application" || mkdir application
-	cp -Rf $(GOBIN)/tap application/kubernetes-broker
-	./scripts/cf-push.sh
-
 logf:
 	./scripts/cf-logf.sh
 	
@@ -97,9 +112,10 @@ tests: verify_gopath mock_update
 kate:
 	kate Makefile app/* *.sh *.yml $(shell find ./catalogData/ -name '*.json')
 
+push: build
+	./scripts/cf-push.sh
+
 pack: build
-	test -d "application" || mkdir application
-	cp -Rf $(GOBIN)/tap application/kubernetes-broker
 	echo "commit_sha=$(COMMIT_SHA)" > build_info.ini
 	zip -r -q kubernetes-broker-${VERSION}.zip application catalogData template manifest.yml build_info.ini
 

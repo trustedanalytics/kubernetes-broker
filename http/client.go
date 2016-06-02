@@ -18,6 +18,7 @@ package http
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -42,6 +43,37 @@ func GetHttpClientWithCertAndCa(certPem, keyPem, caPem string) (*http.Client, *h
 		RootCAs:            ca,
 		InsecureSkipVerify: IsInsecureSkipVerifyEnabled(),
 		//ServerName: "kube-apiserver",  // if necessary, provide certificate name manually, after manual verification!
+	}
+	tlsConfig.BuildNameToCertificate()
+
+	transport := &http.Transport{
+		TLSClientConfig:     tlsConfig,
+		MaxIdleConnsPerHost: MaxIdleconnetionPerHost,
+	}
+
+	client := &http.Client{Transport: transport}
+
+	return client, transport, nil
+}
+
+func GetHttpClientWithCertAndCaFromFile(certPemFile, keyPemFile, caPemFile string) (*http.Client, *http.Transport, error) {
+	cert, err := tls.LoadX509KeyPair(certPemFile, keyPemFile)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	caPemByte, err := ioutil.ReadFile(caPemFile)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ca := x509.NewCertPool()
+	ca.AppendCertsFromPEM(caPemByte)
+
+	tlsConfig := &tls.Config{
+		Certificates:       []tls.Certificate{cert},
+		RootCAs:            ca,
+		InsecureSkipVerify: IsInsecureSkipVerifyEnabled(),
 	}
 	tlsConfig.BuildNameToCertificate()
 

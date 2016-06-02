@@ -137,3 +137,25 @@ You can set desired log level by setting system variable `BROKER_LOG_LEVEL_`. Av
 One can use own image to provide new service offering in catalog. For now there is no persistence for dynamic offering
 (all information are in memory of broker till it restarts). More information how to add such offerings can be found
 [here](catalog/README.md)
+
+## Docker Microservices
+
+* To build Template-repository microservice run:
+    ```
+    make docker_build_template_repository
+    ```
+
+    To run created docker image call:
+    ```
+    docker run tap/template_repository
+    ```
+
+    To run created docker image with custom envs, use:
+    ```
+    docker run -e BROKER_LOG_LEVEL='WARN' tap/template_repository
+    ```
+
+    Default values can be found in [Template-repository Dockerfile](app/template_repository/Dockerfile)
+
+* To build Container-broker microservice run use same commands as above with "container_broker" param instead of "template_repository"
+    [Container-broker Dockerfile](app/container_broker/Dockerfile)

@@ -17,8 +17,10 @@
 package main
 
 import (
+	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/gocraft/web"
 
@@ -34,8 +36,6 @@ type appHandler func(web.ResponseWriter, *web.Request) error
 var logger = logger_wrapper.InitLogger("main")
 
 func main() {
-	initServices()
-
 	r := web.New(api.Context{})
 	r.Middleware(web.LoggerMiddleware)
 	r.Middleware((*api.Context).CheckBrokerConfig)
@@ -44,20 +44,49 @@ func main() {
 	r.Put("/service", (*api.Context).CreateServiceInstance)
 	r.Delete("/service/:instance_id", (*api.Context).DeleteServiceInstance)
 
-	address := os.Getenv("CONTAINER_BROKER_ADDRESS")
-	logger.Info("Will listen on:", address)
-	err := http.ListenAndServe(address, r)
+	port := os.Getenv("CONTAINER_BROKER_PORT")
+	logger.Info("Will listen on:", port)
+
+	isSSLEnabled, err := strconv.ParseBool(os.Getenv("CONTAINER_BROKER_SSL_ACTIVE"))
 	if err != nil {
-		logger.Critical("Couldn't serve app on address: ", address, " Application will be closed now.")
+		logger.Critical("Couldn't read env CONTAINER_BROKER_SSL_ACTIVE!", err)
+	}
+
+	initServices(isSSLEnabled)
+
+	if isSSLEnabled {
+		err = http.ListenAndServeTLS(":"+port, os.Getenv("CONTAINER_BROKER_SSL_CERT_FILE_LOCATION"),
+			os.Getenv("CONTAINER_BROKER_SSL_KEY_FILE_LOCATION"), r)
+	} else {
+		err = http.ListenAndServe(":"+port, r)
+	}
+
+	if err != nil {
+		logger.Critical("Couldn't serve app on port:", port, " Error:", err)
 	}
 }
 
-func initServices() {
-	templateRepositoryConnector, err := templateRepositoryApi.NewTemplateRepository(
-		os.Getenv("TEMPLATE_REPOSITORY_ADDRESS"),
-		os.Getenv("TEMPLATE_REPOSITORY_USER"),
-		os.Getenv("TEMPLATE_REPOSITORY_PASS"),
-	)
+func initServices(isSSLEnabled bool) {
+	var templateRepositoryConnector *templateRepositoryApi.TemplateRepositoryConnector
+	var err error
+
+	if isSSLEnabled {
+		templateRepositoryConnector, err = templateRepositoryApi.NewTemplateRepositoryCa(
+			"https://localhost:"+os.Getenv("TEMPLATE_REPOSITORY_PORT"),
+			os.Getenv("TEMPLATE_REPOSITORY_USER"),
+			os.Getenv("TEMPLATE_REPOSITORY_PASS"),
+			os.Getenv("TEMPLATE_REPOSITORY_SSL_CERT_FILE_LOCATION"),
+			os.Getenv("TEMPLATE_REPOSITORY_SSL_KEY_FILE_LOCATION"),
+			os.Getenv("TEMPLATE_REPOSITORY_SSL_CA_FILE_LOCATION"),
+		)
+	} else {
+		templateRepositoryConnector, err = templateRepositoryApi.NewTemplateRepositoryBasicAuth(
+			"https://localhost:"+os.Getenv("TEMPLATE_REPOSITORY_PORT"),
+			os.Getenv("TEMPLATE_REPOSITORY_USER"),
+			os.Getenv("TEMPLATE_REPOSITORY_PASS"),
+		)
+	}
+
 	if err != nil {
 		logger.Fatal("Can't connect with TAP-NG template provider!", err)
 	}
@@ -67,11 +96,46 @@ func initServices() {
 	api.BrokerConfig.KubernetesApi = k8s.NewK8Fabricator()
 	api.BrokerConfig.TemplateRepository = templateRepositoryConnector
 	api.BrokerConfig.K8sClusterCredential = k8s.K8sClusterCredentials{
-		Server:    os.Getenv("K8S_API_ADDRESS"),
-		Username:  os.Getenv("K8S_API_USERNAME"),
-		Password:  os.Getenv("K8S_API_PASSWORD"),
-		AdminCert: os.Getenv("K8S_API_CERT_PEM_STRING"),
-		AdminKey:  os.Getenv("K8S_API_KEY_PEM_STRING"),
-		CaCert:    os.Getenv("K8S_API_CA_PEM_STRING"),
+		Server:   os.Getenv("K8S_API_ADDRESS"),
+		Username: os.Getenv("K8S_API_USERNAME"),
+		Password: os.Getenv("K8S_API_PASSWORD"),
 	}
+
+	isKubernetesSSLEnabled, err := strconv.ParseBool(os.Getenv("KUBE_SSL_ACTIVE"))
+	if err != nil {
+		logger.Critical("Couldn't read env KUBE_SSL_ACTIVE!", err)
+	}
+
+	if isKubernetesSSLEnabled {
+		cert, key, ca, err := loadSSLCertsFromFile(
+			os.Getenv("K8S_API_CERT_PEM_STRING"),
+			os.Getenv("K8S_API_KEY_PEM_STRING"),
+			os.Getenv("K8S_API_CA_PEM_STRING"),
+		)
+		if err != nil {
+			logger.Fatal("Can't load Kuberentes SSL cert files!", err)
+		}
+		api.BrokerConfig.K8sClusterCredential.AdminCert = cert
+		api.BrokerConfig.K8sClusterCredential.AdminKey = key
+		api.BrokerConfig.K8sClusterCredential.CaCert = ca
+	}
+}
+
+//TODO we should rerfactor K8sClusterCredential to accept files instead strings
+func loadSSLCertsFromFile(certPemFile, keyPemFile, caPemFile string) (string, string, string, error) {
+	certPemByte, err := ioutil.ReadFile(certPemFile)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	keyPemByte, err := ioutil.ReadFile(keyPemFile)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	caPemByte, err := ioutil.ReadFile(caPemFile)
+	if err != nil {
+		return "", "", "", err
+	}
+	return string(certPemByte), string(keyPemByte), string(caPemByte), nil
 }
