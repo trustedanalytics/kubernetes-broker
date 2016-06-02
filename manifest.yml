@@ -10,12 +10,13 @@ applications:
     - sso
     - kubernetes-creator-credentials
   env:
-    VERSION: "0.8.14"
+    VERSION: "0.8.15"
     AUTH_USER: admin
     AUTH_PASS: password
     ACCEPT_INCOMPLETE: true
     INSECURE_SKIP_VERIFY: true
     MAX_ORG_QUOTA: 10
+    BROKER_LOG_LEVEL: INFO
     KUBE_REPO_USER: ""
     KUBE_REPO_PASS: ""
     KUBE_REPO_URL: ""
