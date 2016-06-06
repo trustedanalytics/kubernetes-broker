@@ -122,11 +122,10 @@ pack: build
 pack_prepare_dirs:
 	test -d "application" || mkdir application
 	mkdir -p ./temp/src/github.com/trustedanalytics
-	ln -sf `pwd` temp/src/github.com/trustedanalytics/$(PROJECT_NAME)
+	ln -sf `pwd` temp/src/github.com/trustedanalytics
 
 pack_anywhere: pack_prepare_dirs
 	$(eval GOPATH=$(shell cd ./temp; pwd))
-	$(eval PROJECT_NAME=$(shell basename `pwd`))
 	$(eval LOCAL_APP_DIR_LIST=$(shell cd temp/src/github.com/trustedanalytics/kubernetes-broker; GOPATH=$(GOPATH) go list ./... | grep -v /vendor/))
 	GOPATH=$(GOPATH) CGO_ENABLED=0 go install -tags netgo $(LOCAL_APP_DIR_LIST)
 	cp -Rf $(GOPATH)/bin/tap application/kubernetes-broker
