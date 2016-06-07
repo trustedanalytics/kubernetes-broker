@@ -108,7 +108,7 @@ func (k *K8sCreatorConnector) checkIfClustersQuotaNotExeeded() error {
 		return err
 	}
 
-	if len(clusters) > k.OrgQuota {
+	if len(clusters) >= k.OrgQuota {
 		return errors.New(fmt.Sprintf("Clusters quota exceeded! Max allowed level is: %d", k.OrgQuota))
 	} else {
 		return nil
