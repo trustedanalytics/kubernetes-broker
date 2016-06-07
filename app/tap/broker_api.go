@@ -122,7 +122,7 @@ func (c *Context) ServiceInstancesPut(rw web.ResponseWriter, req *web.Request) {
 	fabrication_function := func() {
 		logger.Info("[ServiceInstancesPut] Creating ", svc_meta.Name, " with plan: ", plan_meta.Name)
 		brokerConfig.StateService.ReportProgress(instance_id, "IN_PROGRESS_IN_BACKGROUND_JOB", nil)
-		component, err := catalog.GetParsedKubernetesComponent(catalog.CatalogPath, instance_id, org, space, svc_meta, plan_meta)
+		component, err := catalog.GetParsedKubernetesComponentByServiceAndPlan(catalog.CatalogPath, instance_id, org, space, svc_meta, plan_meta)
 		if err != nil {
 			brokerConfig.StateService.ReportProgress(instance_id, "FAILED", err)
 			if !async {
@@ -559,7 +559,7 @@ func (c *Context) ServiceBindingsPut(rw web.ResponseWriter, req *web.Request) {
 		return
 	}
 
-	blueprint, err := catalog.GetKubernetesBlueprintByServiceAndPlan(catalog.CatalogPath, svc_meta, plan_meta)
+	blueprint, err := catalog.GetKubernetesBlueprint(catalog.CatalogPath, svc_meta.InternalId, plan_meta.InternalId, svc_meta.Id)
 	if err != nil {
 		util.Respond500(rw, err)
 		return

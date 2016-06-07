@@ -58,10 +58,10 @@ func TestFabricateService(t *testing.T) {
 				Containers: []api.Container{{}},
 			}}}},
 		},
-		Services:              []*api.Service{&api.Service{}},
-		ServiceAccounts:       []*api.ServiceAccount{&api.ServiceAccount{}},
-		Secrets:               []*api.Secret{&api.Secret{}},
-		PersistentVolumeClaim: []*api.PersistentVolumeClaim{&api.PersistentVolumeClaim{}},
+		Services:               []*api.Service{&api.Service{}},
+		ServiceAccounts:        []*api.ServiceAccount{&api.ServiceAccount{}},
+		Secrets:                []*api.Secret{&api.Secret{}},
+		PersistentVolumeClaims: []*api.PersistentVolumeClaim{&api.PersistentVolumeClaim{}},
 	}
 
 	secretResponse := &api.SecretList{

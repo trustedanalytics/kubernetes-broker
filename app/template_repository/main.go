@@ -38,7 +38,7 @@ var logger = logger_wrapper.InitLogger("main")
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	catalog.GetAvailableServicesMetadata()
+	catalog.GetAvailableTemplates()
 	initServices()
 
 	r := web.New(api.Context{})
@@ -48,6 +48,7 @@ func main() {
 
 	r.Get("/catalog", (*api.Context).Catalog)
 	r.Post("/catalog/parsed", (*api.Context).GenerateParsedTemplate)
+	r.Put("/catalog", (*api.Context).CreateTemplate)
 	r.Put("/dynamicservice", (*api.Context).CreateAndRegisterDynamicService)
 	r.Delete("/dynamicservice", (*api.Context).DeleteAndUnregisterDynamicService)
 

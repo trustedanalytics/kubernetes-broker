@@ -114,7 +114,7 @@ func (k *K8Fabricator) FabricateService(creds K8sClusterCredentials, space, cf_s
 	}
 
 	ss.ReportProgress(cf_service_id, "IN_PROGRESS_CREATING_PERSIST_VOL_CLAIMS", nil)
-	for idx, claim := range component.PersistentVolumeClaim {
+	for idx, claim := range component.PersistentVolumeClaims {
 		ss.ReportProgress(cf_service_id, "IN_PROGRESS_CREATING_PERSIST_VOL_CLAIM"+strconv.Itoa(idx), nil)
 		_, err = c.PersistentVolumeClaims(api.NamespaceDefault).Create(claim)
 		if err != nil {

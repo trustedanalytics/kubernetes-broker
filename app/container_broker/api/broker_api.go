@@ -49,11 +49,10 @@ func (c *Context) CheckBrokerConfig(rw web.ResponseWriter, req *web.Request, nex
 }
 
 type CreateServiceInstanceRequest struct {
-	Uuid                string `json:"uuid"`
-	ServiceMetadataUuid string `json:"serviceMetadataUuid"`
-	PlanMetadataUuid    string `json:"planMetadataUuid"`
-	OrgId               string `json:"orgId"`
-	SpaceId             string `json:"spaceId"`
+	Uuid       string `json:"uuid"`
+	TemplateId string `json:"templateId"`
+	OrgId      string `json:"orgId"`
+	SpaceId    string `json:"spaceId"`
 }
 
 func (c *Context) CreateServiceInstance(rw web.ResponseWriter, req *web.Request) {
@@ -67,11 +66,10 @@ func (c *Context) CreateServiceInstance(rw web.ResponseWriter, req *web.Request)
 
 	BrokerConfig.StateService.ReportProgress(req_json.Uuid, "IN_PROGRESS_STARTED", nil)
 	templateRequest := api.GenerateParsedTemplateRequest{
-		Uuid:                req_json.Uuid,
-		ServiceMetadataUuid: req_json.ServiceMetadataUuid,
-		PlanMetadataUuid:    req_json.PlanMetadataUuid,
-		OrgId:               req_json.OrgId,
-		SpaceId:             req_json.SpaceId,
+		Uuid:       req_json.Uuid,
+		TemplateId: req_json.TemplateId,
+		OrgId:      req_json.OrgId,
+		SpaceId:    req_json.SpaceId,
 	}
 	component, err := BrokerConfig.TemplateRepository.GenerateParsedTemplate(templateRequest)
 	if err != nil {

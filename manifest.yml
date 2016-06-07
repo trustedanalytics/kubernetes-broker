@@ -10,7 +10,7 @@ applications:
     - sso
     - kubernetes-creator-credentials
   env:
-    VERSION: "0.8.19"
+    VERSION: "0.8.20"
     AUTH_USER: admin
     AUTH_PASS: password
     ACCEPT_INCOMPLETE: true

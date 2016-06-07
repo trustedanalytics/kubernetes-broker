@@ -18,6 +18,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gocraft/web"
@@ -48,11 +49,10 @@ func (c *Context) Catalog(rw web.ResponseWriter, req *web.Request) {
 }
 
 type GenerateParsedTemplateRequest struct {
-	Uuid                string `json:"uuid"`
-	ServiceMetadataUuid string `json:"serviceMetadataUuid"`
-	PlanMetadataUuid    string `json:"planMetadataUuid"`
-	OrgId               string `json:"orgId"`
-	SpaceId             string `json:"spaceId"`
+	Uuid       string `json:"uuid"`
+	OrgId      string `json:"orgId"`
+	SpaceId    string `json:"spaceId"`
+	TemplateId string `json:"spaceId"`
 }
 
 func (c *Context) GenerateParsedTemplate(rw web.ResponseWriter, req *web.Request) {
@@ -64,19 +64,37 @@ func (c *Context) GenerateParsedTemplate(rw web.ResponseWriter, req *web.Request
 		return
 	}
 
-	svcMetadata, planMetadata, err := catalog.WhatToCreateByServiceAndPlanId(req_json.ServiceMetadataUuid, req_json.PlanMetadataUuid)
-	if err != nil {
-		util.Respond500(rw, err)
-		return
-	}
-
-	component, err := catalog.GetParsedKubernetesComponent(catalog.CatalogPath, req_json.Uuid,
-		req_json.OrgId, req_json.SpaceId, svcMetadata, planMetadata)
+	template := catalog.GetTemplateMetadataById(req_json.TemplateId)
+	component, err := catalog.GetParsedKubernetesComponentByTemplate(catalog.CatalogPath, req_json.Uuid,
+		req_json.OrgId, req_json.SpaceId, template)
 	if err != nil {
 		util.Respond500(rw, err)
 		return
 	}
 	util.WriteJson(rw, component, http.StatusOK)
+}
+
+func (c *Context) CreateTemplate(rw web.ResponseWriter, req *web.Request) {
+	reqTemplate := catalog.Template{}
+
+	err := util.ReadJson(req, &reqTemplate)
+	if err != nil {
+		util.Respond500(rw, err)
+		return
+	}
+
+	if catalog.GetTemplateMetadataById(reqTemplate.Id) != nil {
+		logger.Warning(fmt.Sprintf("Template with Id: %s already exists!", reqTemplate.Id))
+		util.WriteJson(rw, "", http.StatusConflict)
+		return
+	}
+
+	err = catalog.AddAndRegisterCustomTemplate(reqTemplate)
+	if err != nil {
+		util.Respond500(rw, err)
+		return
+	}
+	util.WriteJson(rw, "", http.StatusCreated)
 }
 
 type DynamicServiceRequest struct {
@@ -126,7 +144,6 @@ func (c *Context) DeleteAndUnregisterDynamicService(rw web.ResponseWriter, req *
 
 	catalog.UnregisterOfferingFromCatalog(service)
 	util.WriteJson(rw, "", http.StatusNoContent)
-
 }
 
 func (c *Context) Error(rw web.ResponseWriter, r *web.Request, err interface{}) {

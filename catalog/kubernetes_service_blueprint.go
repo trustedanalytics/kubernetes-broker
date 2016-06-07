@@ -41,7 +41,7 @@ type KubernetesBlueprint struct {
 }
 
 type KubernetesComponent struct {
-	PersistentVolumeClaim  []*api.PersistentVolumeClaim
+	PersistentVolumeClaims []*api.PersistentVolumeClaim
 	ReplicationControllers []*api.ReplicationController
 	Services               []*api.Service
 	ServiceAccounts        []*api.ServiceAccount
@@ -51,8 +51,17 @@ type KubernetesComponent struct {
 var TEMP_DYNAMIC_BLUEPRINTS = map[string]KubernetesBlueprint{}
 var possible_rand_chars = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
 
-func GetParsedKubernetesComponent(catalogPath, instanceId, org, space string, svcMeta ServiceMetadata, planMeta PlanMetadata) (*KubernetesComponent, error) {
-	blueprint, err := GetKubernetesBlueprintByServiceAndPlan(catalogPath, svcMeta, planMeta)
+func GetParsedKubernetesComponentByTemplate(catalogPath, instanceId, org, space string, temp *TemplateMetadata) (*KubernetesComponent, error) {
+	blueprint, err := GetKubernetesBlueprint(catalogPath, temp.TemplateDirName, temp.TemplatePlanDirName, temp.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	return ParseKubernetesComponent(blueprint, instanceId, temp.Id, temp.Id, org, space)
+}
+
+func GetParsedKubernetesComponentByServiceAndPlan(catalogPath, instanceId, org, space string, svcMeta ServiceMetadata, planMeta PlanMetadata) (*KubernetesComponent, error) {
+	blueprint, err := GetKubernetesBlueprint(catalogPath, svcMeta.InternalId, planMeta.InternalId, svcMeta.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +113,7 @@ func CreateKubernetesComponentFromBlueprint(blueprint KubernetesBlueprint) (*Kub
 			logger.Error("[ParseKubernetesComponenets] Unmarshalling PersistentVolumeClaim error:", err)
 			return result, err
 		}
-		result.PersistentVolumeClaim = append(result.PersistentVolumeClaim, parsedPVC)
+		result.PersistentVolumeClaims = append(result.PersistentVolumeClaims, parsedPVC)
 	}
 
 	for _, secret := range blueprint.SecretsJson {
@@ -149,19 +158,19 @@ func CreateKubernetesComponentFromBlueprint(blueprint KubernetesBlueprint) (*Kub
 	return result, nil
 }
 
-func GetKubernetesBlueprintByServiceAndPlan(catalogPath string, svcMeta ServiceMetadata, planMeta PlanMetadata) (KubernetesBlueprint, error) {
+func GetKubernetesBlueprint(catalogPath, templateDirName, planDirName, templateId string) (KubernetesBlueprint, error) {
 	result := KubernetesBlueprint{}
 	var err error
 	var secretTemplatesExists bool
 
 	//todo replace it by psotgres!
 	// first check in registred dynamic templates:
-	if blueprint, ok := TEMP_DYNAMIC_BLUEPRINTS[svcMeta.Id]; ok {
+	if blueprint, ok := TEMP_DYNAMIC_BLUEPRINTS[templateId]; ok {
 		return blueprint, nil
 	}
 
-	svc_path := catalogPath + svcMeta.InternalId + "/"
-	plan_path := svc_path + planMeta.InternalId + "/"
+	svc_path := catalogPath + templateDirName + "/"
+	plan_path := svc_path + planDirName + "/"
 	secrets_path := svc_path + "secretTemplates/"
 	k8s_plan_path := plan_path + "k8s/"
 
@@ -221,13 +230,13 @@ func GetKubernetesBlueprintByServiceAndPlan(catalogPath string, svcMeta ServiceM
 
 	replicas, err := read_k8s_json_files_with_prefix_from_dir(plan_path, "node_template")
 	if err != nil {
-		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading replica template files", svc_path)
+		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading replica template files", plan_path)
 		return result, err
 	}
 
 	uriTemplate, err := read_k8s_files_with_prefix_from_dir(plan_path, "uri_cluster_template")
 	if err != nil {
-		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading uri template files", svc_path)
+		logger.Error("[GetKubernetesBlueprintForServiceAndPlan] Error reading uri template files", plan_path)
 		return result, err
 	}
 
@@ -318,6 +327,28 @@ func read_k8s_files_with_prefix_suffix_from_dir(path, prefix string, suffix stri
 		}
 	}
 	return results, nil
+}
+
+func save_k8s_file_in_dir(path, fileName string, file interface{}) error {
+	logger.Debug("[save_k8s_file_in_dir]", path)
+
+	bBody, err := json.Marshal(file)
+	if err != nil {
+		logger.Error("[save_k8s_file_in_dir] Crate Dir failed!:", err)
+		return err
+	}
+
+	err = os.MkdirAll(path, 0777)
+	if err != nil {
+		logger.Error("[save_k8s_file_in_dir] Crate Dir failed!:", err)
+		return err
+	}
+	err = ioutil.WriteFile(path+"/"+fileName, bBody, 0666)
+	if err != nil {
+		logger.Error("[save_k8s_file_in_dir] Save file failed:", err)
+		return err
+	}
+	return nil
 }
 
 func check_if_file_or_dir_exists(path string) (bool, error) {

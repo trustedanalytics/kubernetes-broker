@@ -54,10 +54,8 @@ func CreateDynamicService(dynamicService DynamicService) (KubernetesBlueprint, P
 		return result, plan, service, err
 	}
 
-	blueprintTemplate, err := GetKubernetesBlueprintByServiceAndPlan(
-		templateCatalogPath,
-		ServiceMetadata{InternalId: templateServiceMetaInternalId},
-		PlanMetadata{InternalId: templatePlanMetaInternalId},
+	blueprintTemplate, err := GetKubernetesBlueprint(
+		templateCatalogPath, templateServiceMetaInternalId, templatePlanMetaInternalId, "",
 	)
 	if err != nil {
 		return result, plan, service, err

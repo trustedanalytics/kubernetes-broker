@@ -91,8 +91,7 @@ func TestGetKubernetesBlueprintForServiceAndPlan(t *testing.T) {
 
 	Convey("Test GetKubernetesBlueprintForServiceAndPlan", t, func() {
 		Convey("Should returns proper response", func() {
-			result, err := GetKubernetesBlueprintByServiceAndPlan(testCatalogPath, ServiceMetadata{InternalId: tst.TestInternalServiceId},
-				PlanMetadata{InternalId: tst.TestInternalPlanId})
+			result, err := GetKubernetesBlueprint(testCatalogPath, tst.TestInternalServiceId, tst.TestInternalPlanId, "")
 			So(err, ShouldBeNil)
 			So(len(result.ServiceJson), ShouldEqual, 1)
 			So(result.Id, ShouldEqual, 0)
@@ -100,8 +99,7 @@ func TestGetKubernetesBlueprintForServiceAndPlan(t *testing.T) {
 		})
 
 		Convey("Should returns error when service not exist", func() {
-			_, err := GetKubernetesBlueprintByServiceAndPlan(testCatalogPath, ServiceMetadata{InternalId: "FakeService"},
-				PlanMetadata{InternalId: "fakePlan"})
+			_, err := GetKubernetesBlueprint(testCatalogPath, "FakeService", "fakePlan", "")
 
 			So(err, ShouldNotBeNil)
 		})
