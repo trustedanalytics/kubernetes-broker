@@ -84,8 +84,9 @@ function find_other_nodes {
   if [ -z "$NODE_HOST_EXISTS" ]; then
   #if cuurent node is not master, wait until others mysql nodes will start
     if [ -z "${MASTER}" ]; then
-	sleep 5
-	  find_other_nodes
+	    sleep 5
+	    echo "Waiting for other nodes to start"
+	    find_other_nodes
     fi
   fi
 }
@@ -107,30 +108,36 @@ if [ "$1" = 'mysqld' ]; then
 
     # mysql_install_db installs system tables
     echo 'Running mysql_install_db ...'
-        mysql_install_db --datadir="$DATADIR"
-        echo 'Finished mysql_install_db'
+    mysql_install_db --datadir="$DATADIR"
+    echo 'Finished mysql_install_db'
     
     # this script will be run once when MySQL first starts to set up
-    # prior to creating system tables and will ensure proper user permissions 
+    # prior to creating system tables and will ensure proper user permissions
     tempSqlFile='/tmp/mysql-first-time.sql'
-    cat > "$tempSqlFile" <<-EOSQL
-DELETE FROM mysql.user ;
-CREATE USER 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}' ;
-GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION ;
-EOSQL
-    
-    if [ "$MYSQL_DATABASE" ]; then
-      echo "CREATE DATABASE IF NOT EXISTS \`$MYSQL_DATABASE\` ;" >> "$tempSqlFile"
-    fi
-    
-    if [ "$MYSQL_USER" -a "$MYSQL_PASSWORD" ]; then
-      echo "CREATE USER '$MYSQL_USER'@'%' IDENTIFIED BY '$MYSQL_PASSWORD' ;" >> "$tempSqlFile"
+    touch $tempSqlFile
 
-      echo "GRANT ALL ON *.* TO '$MYSQL_USER'@'%' ;" >> "$tempSqlFile"
-      
-      if [ "$MYSQL_DATABASE" ]; then
-        echo "GRANT ALL ON \`$MYSQL_DATABASE\`.* TO '$MYSQL_USER'@'%' ;" >> "$tempSqlFile"
-      fi
+    if [ -n "${MASTER}" ] && [ -z "${NODE_HOST_EXISTS}" ]; then
+
+        echo "DELETE FROM mysql.user ;" >> "$tempSqlFile"
+        echo "CREATE USER 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}' ;" >> "$tempSqlFile"
+        echo "GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION ;" >> "$tempSqlFile"
+
+
+        if [ "$MYSQL_DATABASE" ]; then
+          echo "CREATE DATABASE IF NOT EXISTS \`$MYSQL_DATABASE\` ;" >> "$tempSqlFile"
+        fi
+
+        if [ "$MYSQL_USER" -a "$MYSQL_PASSWORD" ]; then
+        echo "SELECT 'creating user' ;" >> "$tempSqlFile"
+          echo "CREATE USER '$MYSQL_USER'@'%' IDENTIFIED BY '$MYSQL_PASSWORD' ;" >> "$tempSqlFile"
+
+          echo "GRANT ALL ON *.* TO '$MYSQL_USER'@'%' ;" >> "$tempSqlFile"
+
+          if [ "$MYSQL_DATABASE" ]; then
+          echo "SELECT 'grant user' ;" >> "$tempSqlFile"
+            echo "GRANT ALL ON \`$MYSQL_DATABASE\`.* TO '$MYSQL_USER'@'%' ;" >> "$tempSqlFile"
+          fi
+        fi
     fi
 
     # Add SST (Single State Transfer) user if Clustering is turned on
@@ -148,7 +155,7 @@ EOSQL
     fi
 
     echo 'FLUSH PRIVILEGES ;' >> "$tempSqlFile"
-    
+
     # Add the SQL file to mysqld's command line args
     set -- "$@" --init-file="$tempSqlFile"
   fi
