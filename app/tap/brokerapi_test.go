@@ -261,9 +261,9 @@ func TestServiceInstancesGetLastOperation(t *testing.T) {
 		Convey("Should returns succeeded response", func() {
 			gomock.InOrder(
 				mockCloudAPi.EXPECT().GetOrgIdAndSpaceIdFromCfByServiceInstanceId(testId).Return(tst.TestOrgGuid, tst.TestSpaceGuid, nil),
-				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
 				mockStateService.EXPECT().HasProgressRecords(testId).Return(true),
 				mockStateService.EXPECT().ReadProgress(testId).Return(time.Now(), "IN_PROGRESS_KUBERNETES_OK", nil),
+				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
 				mockKubernetesApi.EXPECT().CheckKubernetesServiceHealthByServiceInstanceId(testCreds, tst.TestSpaceGuid, testId).Return(true, nil),
 			)
 
@@ -279,8 +279,8 @@ func TestServiceInstancesGetLastOperation(t *testing.T) {
 		Convey("Should returns failed response", func() {
 			gomock.InOrder(
 				mockCloudAPi.EXPECT().GetOrgIdAndSpaceIdFromCfByServiceInstanceId(testId).Return(tst.TestOrgGuid, tst.TestSpaceGuid, nil),
-				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
 				mockStateService.EXPECT().HasProgressRecords(testId).Return(false),
+				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
 			)
 
 			rr := sendRequest("GET", requestPath, nil, r)

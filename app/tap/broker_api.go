@@ -135,6 +135,7 @@ func (c *Context) ServiceInstancesPut(rw web.ResponseWriter, req *web.Request) {
 
 		creds, err := brokerConfig.CreatorConnector.GetOrCreateCluster(org)
 		if err != nil {
+			brokerConfig.StateService.ReportProgress(instance_id, "FAILED", err)
 			util.Respond500(rw, err)
 			return
 		}
@@ -375,13 +376,7 @@ func (c *Context) ServiceInstancesGetLastOperation(rw web.ResponseWriter, req *w
 		return
 	}
 
-	_, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
-	if err != nil {
-		util.Respond500(rw, err)
-		return
-	}
-
-	var stateValue string
+	stateValue := "in progress"
 	var description string
 
 	if brokerConfig.StateService.HasProgressRecords(instance_id) {
@@ -393,6 +388,13 @@ func (c *Context) ServiceInstancesGetLastOperation(rw web.ResponseWriter, req *w
 			stateValue = "failed"
 			logger.Error("[ServiceInstancesGetLastOperation] creating service takes too long! Status set to:", stateValue)
 		} else if description == "IN_PROGRESS_KUBERNETES_OK" {
+
+			_, creds, err := brokerConfig.CreatorConnector.GetCluster(org)
+			if err != nil {
+				util.Respond500(rw, err)
+				return
+			}
+
 			healthy, err := brokerConfig.KubernetesApi.CheckKubernetesServiceHealthByServiceInstanceId(creds, space, instance_id)
 			if err != nil {
 				stateValue = "in progress"
