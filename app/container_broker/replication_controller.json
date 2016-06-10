@@ -42,7 +42,8 @@
               { "name": "TEMPLATE_REPOSITORY_SSL_KEY_FILE_LOCATION", "value":"" },
               { "name": "TEMPLATE_REPOSITORY_SSL_CA_FILE_LOCATION", "value":"" },
               { "name": "INSECURE_SKIP_VERIFY", "value":"true" },
-              { "name": "BROKER_LOG_LEVEL", "value":"DEBUG" }
+              { "name": "BROKER_LOG_LEVEL", "value":"DEBUG" },
+              { "name": "CHECK_JOB_INTERVAL_SEC", "value":"10" }
             ],
             "imagePullPolicy": "IfNotPresent"
           }

@@ -6,17 +6,32 @@ import (
 	"io/ioutil"
 	"os"
 	"sync"
+
+	"k8s.io/kubernetes/pkg/apis/extensions"
+)
+
+type JobType string
+
+const (
+	JobTypeOnCreateInstance JobType = "onCreateInstance"
+	JobTypeOnDeleteInstance JobType = "onDeleteInstance"
 )
 
 type Template struct {
-	Id   string              `json:"id"`
-	Body KubernetesComponent `json:"body"`
+	Id    string              `json:"id"`
+	Body  KubernetesComponent `json:"body"`
+	Hooks []*JobHook          `json:"hooks"`
 }
 
 type TemplateMetadata struct {
-	Id                  string
-	TemplateDirName     string
-	TemplatePlanDirName string
+	Id                  string `json:"id"`
+	TemplateDirName     string `json:"templateDirName"`
+	TemplatePlanDirName string `json:"templatePlanDirName"`
+}
+
+type JobHook struct {
+	Type JobType        `json:"type"`
+	Job  extensions.Job `json:"job"`
 }
 
 var TEMPLATES map[string]*TemplateMetadata
@@ -142,18 +157,71 @@ func AddAndRegisterCustomTemplate(template Template) error {
 			return err
 		}
 	}
+	for i, job := range template.Hooks {
+		err := save_k8s_file_in_dir(templateDir, fmt.Sprintf("job_%d.json", i), job)
+		if err != nil {
+			return err
+		}
+	}
 
 	plan := PlanMetadata{Id: template.Id}
 	err := save_k8s_file_in_dir(templatePlanDir, "plan.json", plan)
 	if err != nil {
 		return err
 	}
+
 	registerTemplateInCatalog(&TemplateMetadata{
 		Id:                  template.Id,
 		TemplatePlanDirName: templatePlanDir,
 		TemplateDirName:     templateDir,
 	})
 	return nil
+}
+
+func GetParsedTemplate(templateMetadata *TemplateMetadata, catalogPath, instanceId, orgId, spaceId string) (Template, error) {
+	result := Template{Id: templateMetadata.Id}
+	component, err := GetParsedKubernetesComponentByTemplate(catalogPath, instanceId, orgId, spaceId, templateMetadata)
+	if err != nil {
+		return result, err
+	}
+
+	jobsHooksRaw, err := GetJobHooks(catalogPath, templateMetadata)
+	if err != nil {
+		return result, err
+	}
+
+	jobHooks, err := GetParsedJobHooks(jobsHooksRaw, instanceId, templateMetadata.Id, templateMetadata.Id, orgId, spaceId)
+	if err != nil {
+		return result, err
+	}
+
+	result.Body = *component
+	result.Hooks = jobHooks
+	return result, nil
+}
+
+func GetParsedJobHooks(jobs []string, instanceId, svcMetaId, planMetaId, org, space string) ([]*JobHook, error) {
+	result := []*JobHook{}
+	parsedJobs := []string{}
+	for i, job := range jobs {
+		parsedJobs = append(parsedJobs, adjust_params(job, org, space, instanceId, svcMetaId, planMetaId, i))
+	}
+
+	for _, job := range parsedJobs {
+		jobHook := &JobHook{}
+		err := json.Unmarshal([]byte(job), jobHook)
+		if err != nil {
+			logger.Error("Unmarshalling JobHook error:", err)
+			return result, err
+		}
+		result = append(result, jobHook)
+	}
+	return result, nil
+}
+
+func GetJobHooks(catalogPath string, temp *TemplateMetadata) ([]string, error) {
+	_, _, k8sPlanPath := GetCatalogFilesPath(catalogPath, temp.TemplateDirName, temp.TemplatePlanDirName)
+	return read_k8s_json_files_with_prefix_from_dir(k8sPlanPath, "job")
 }
 
 func registerTemplateInCatalog(template *TemplateMetadata) {

@@ -19,10 +19,12 @@ package k8s
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -49,6 +51,8 @@ type KubernetesApi interface {
 	CreateSecret(creds K8sClusterCredentials, secret api.Secret) error
 	DeleteSecret(creds K8sClusterCredentials, key string) error
 	UpdateSecret(creds K8sClusterCredentials, secret api.Secret) error
+	ProcessJobsResult(creds K8sClusterCredentials, ss state.StateService) error
+	CreateJobsByType(creds K8sClusterCredentials, jobs []*catalog.JobHook, serviceId string, jobType catalog.JobType, ss state.StateService) error
 }
 
 type K8Fabricator struct {
@@ -68,6 +72,9 @@ type K8sServiceInfo struct {
 	TapPublic bool     `json:"tapPublic"`
 	Uri       []string `json:"uri"`
 }
+
+const serviceIdLabel string = "service_id"
+const managedByLabel string = "managed_by"
 
 func NewK8Fabricator() *K8Fabricator {
 	return &K8Fabricator{KubernetesClient: &KubernetesRestCreator{}}
@@ -159,6 +166,111 @@ func (k *K8Fabricator) FabricateService(creds K8sClusterCredentials, space, cf_s
 
 	ss.ReportProgress(cf_service_id, "IN_PROGRESS_FAB_OK", nil)
 	return result, nil
+}
+
+func (k *K8Fabricator) CreateJobsByType(creds K8sClusterCredentials, jobs []*catalog.JobHook, serviceId string,
+	jobType catalog.JobType, ss state.StateService) error {
+	c, err := k.KubernetesClient.GetNewExtensionsClient(creds)
+	if err != nil {
+		return err
+	}
+
+	for _, jobHook := range jobs {
+		if jobHook.Type == jobType {
+			_, err = c.Jobs(api.NamespaceDefault).Create(&jobHook.Job)
+			if err != nil {
+				ss.NotifyCatalog(serviceId, fmt.Sprintf("Create job error! Job type: %s", jobHook.Type), err)
+				return err
+			}
+			ss.NotifyCatalog(serviceId, fmt.Sprintf("Job created! Job type: %s", jobHook.Type), nil)
+		}
+	}
+	return nil
+}
+
+func (k *K8Fabricator) ProcessJobsResult(creds K8sClusterCredentials, ss state.StateService) error {
+	logger.Debug("Processing jobs...")
+	client, extensionsClient, err := k.getKubernetesClientAndExtensionClient(creds)
+	if err != nil {
+		logger.Error("getKubernetesClientAndExtensionClient error:", err)
+		return err
+	}
+
+	selector, err := getSelectorForManagedByLabel()
+	if err != nil {
+		return err
+	}
+
+	jobs, err := extensionsClient.Jobs(api.NamespaceDefault).List(api.ListOptions{
+		LabelSelector: selector,
+	})
+	if err != nil {
+		logger.Error("get Jobs error:", err)
+		return err
+	}
+
+jobs:
+	for _, job := range jobs.Items {
+		logger.Info("Processing job: ", job.Name)
+		serviceId := job.Labels[serviceIdLabel]
+		secretSelector, err := getSelectorForServiceIdLabel(serviceId)
+
+		if job.Status.Active > 0 {
+			logger.Info(fmt.Sprintf("Job with name: %s and serviceId: %s is still running. Results will be collected on next attempt", job.Name, serviceId))
+			continue jobs
+		}
+
+		logs, err := getPodsLogs(client, secretSelector)
+		if err != nil {
+			ss.NotifyCatalog(serviceId, fmt.Sprintf("Can't get Job logs from pod! Job name: %s, serviceId: %s", job.Name, serviceId), err)
+			continue jobs
+		}
+
+		if job.Status.Failed > 0 {
+			ss.NotifyCatalog(serviceId, fmt.Sprintf("Job with name: %s and serviceId: %s FAILED! Pod logs:", job.Name, serviceId), err)
+		}
+		if job.Status.Succeeded > 0 && job.Annotations["createSecret"] == "true" {
+			_, err = client.ConfigMaps(api.NamespaceDefault).Create(getSecretFromLogs(job, logs))
+			if err != nil {
+				ss.NotifyCatalog(serviceId, fmt.Sprintf("Can't save Jobs credentials! Job name: %s, serviceId: %s. Logs: %v", job.Name, serviceId, logs), err)
+			} else {
+				ss.NotifyCatalog(serviceId, fmt.Sprintf("Job with name: %s and serviceId: %s COMPLETED SUCCESSFULLY!", job.Name, serviceId), err)
+			}
+		}
+		err = extensionsClient.Jobs(api.NamespaceDefault).Delete(job.Name, &api.DeleteOptions{})
+		if err != nil {
+			ss.NotifyCatalog(serviceId, fmt.Sprintf("Delete Job ERROR! Job name: %s, serviceId: %s", job.Name, serviceId), err)
+		} else {
+			ss.NotifyCatalog(serviceId, fmt.Sprintf("Job name: %s and serviceId: %s DELETED SUCCESSFULLY!", job.Name, serviceId), err)
+		}
+	}
+	return nil
+}
+
+func getPodsLogs(client KubernetesClient, selector labels.Selector) (map[string]string, error) {
+	result := map[string]string{}
+	pods, err := client.Pods(api.NamespaceDefault).List(api.ListOptions{
+		LabelSelector: selector,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, pod := range pods.Items {
+		byteBody, err := client.Pods(api.NamespaceDefault).GetLogs(pod.Name, &api.PodLogOptions{}).Do().Raw()
+		if err != nil {
+			return nil, err
+		}
+		result[pod.Name] = string(byteBody)
+	}
+	return result, nil
+}
+
+func getSecretFromLogs(job extensions.Job, logs map[string]string) *api.ConfigMap {
+	return &api.ConfigMap{
+		ObjectMeta: api.ObjectMeta{Name: job.Name, Labels: job.Labels},
+		Data:       logs,
+	}
 }
 
 func (k *K8Fabricator) CheckKubernetesServiceHealthByServiceInstanceId(creds K8sClusterCredentials, space, instance_id string) (bool, error) {
@@ -461,7 +573,7 @@ func (k *K8Fabricator) GetPodsStateForAllServices(creds K8sClusterCredentials) (
 	}
 
 	for _, pod := range pods.Items {
-		service_id := pod.Labels["service_id"]
+		service_id := pod.Labels[serviceIdLabel]
 		if service_id != "" {
 			podStatus := PodStatus{
 				pod.Name, service_id, pod.Status.Phase, pod.Status.Message,
@@ -616,13 +728,23 @@ func (k *K8Fabricator) getKubernetesClientWithServiceIdSelector(creds K8sCluster
 	return c, selector, err
 }
 
+func (k *K8Fabricator) getKubernetesClientAndExtensionClient(creds K8sClusterCredentials) (KubernetesClient, ExtensionsInterface, error) {
+	client, err := k.KubernetesClient.GetNewClient(creds)
+	if err != nil {
+		return client, nil, err
+	}
+
+	extensionsClient, err := k.KubernetesClient.GetNewExtensionsClient(creds)
+	return client, extensionsClient, err
+}
+
 func getSelectorForServiceIdLabel(serviceId string) (labels.Selector, error) {
 	selector := labels.NewSelector()
-	managedByReq, err := labels.NewRequirement("managed_by", labels.EqualsOperator, sets.NewString("TAP"))
+	managedByReq, err := labels.NewRequirement(managedByLabel, labels.EqualsOperator, sets.NewString("TAP"))
 	if err != nil {
 		return selector, err
 	}
-	serviceIdReq, err := labels.NewRequirement("service_id", labels.EqualsOperator, sets.NewString(serviceId))
+	serviceIdReq, err := labels.NewRequirement(serviceIdLabel, labels.EqualsOperator, sets.NewString(serviceId))
 	if err != nil {
 		return selector, err
 	}
@@ -631,7 +753,7 @@ func getSelectorForServiceIdLabel(serviceId string) (labels.Selector, error) {
 
 func getSelectorForManagedByLabel() (labels.Selector, error) {
 	selector := labels.NewSelector()
-	managedByReq, err := labels.NewRequirement("managed_by", labels.EqualsOperator, sets.NewString("TAP"))
+	managedByReq, err := labels.NewRequirement(managedByLabel, labels.EqualsOperator, sets.NewString("TAP"))
 	if err != nil {
 		return selector, err
 	}

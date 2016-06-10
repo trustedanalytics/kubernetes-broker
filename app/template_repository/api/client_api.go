@@ -29,9 +29,7 @@ import (
 
 type TemplateRepository interface {
 	GetCatalog() (catalog.ServicesMetadata, error)
-	GenerateParsedTemplate(request GenerateParsedTemplateRequest) (catalog.KubernetesComponent, error)
-	CreateAndRegisterDynamicService(dynamicService DynamicServiceRequest) error
-	DeleteAndUnregisterDynamicService(dynamicService DynamicServiceRequest) error
+	GenerateParsedTemplate(request GenerateParsedTemplateRequest) (catalog.Template, error)
 }
 
 type TemplateRepositoryConnector struct {
@@ -75,54 +73,24 @@ func (t *TemplateRepositoryConnector) GetCatalog() (catalog.ServicesMetadata, er
 	return services, nil
 }
 
-func (t *TemplateRepositoryConnector) GenerateParsedTemplate(request GenerateParsedTemplateRequest) (catalog.KubernetesComponent, error) {
-	component := catalog.KubernetesComponent{}
+func (t *TemplateRepositoryConnector) GenerateParsedTemplate(request GenerateParsedTemplateRequest) (catalog.Template, error) {
+	template := catalog.Template{}
 
 	url := t.Address + "/catalog/parsed"
 	body, err := json.Marshal(request)
 	if err != nil {
 		logger.Error("GenerateParsedTemplate marshall request error:", err)
-		return component, err
+		return template, err
 	}
 
 	status, body, err := brokerHttp.RestPOST(url, string(body), &brokerHttp.BasicAuth{t.Username, t.Password}, t.Client)
-	err = json.Unmarshal(body, &component)
+	err = json.Unmarshal(body, &template)
 	if err != nil {
 		logger.Error("GenerateParsedTemplate unmarshall response error:", err)
-		return component, err
+		return template, err
 	}
 	if status != http.StatusOK {
-		return component, errors.New("Bad response status: " + strconv.Itoa(status) + ". Body: " + string(body))
+		return template, errors.New("Bad response status: " + strconv.Itoa(status) + ". Body: " + string(body))
 	}
-	return component, nil
-}
-
-func (t *TemplateRepositoryConnector) CreateAndRegisterDynamicService(dynamicService DynamicServiceRequest) error {
-	url := t.Address + "/dynamicservice"
-	body, err := json.Marshal(dynamicService)
-	if err != nil {
-		logger.Error("CreateAndRegisterDynamicService error:", err)
-		return err
-	}
-
-	status, body, err := brokerHttp.RestPUT(url, string(body), &brokerHttp.BasicAuth{t.Username, t.Password}, t.Client)
-	if status != http.StatusCreated {
-		return errors.New("Bad response status: " + strconv.Itoa(status) + ". Body: " + string(body))
-	}
-	return err
-}
-
-func (t *TemplateRepositoryConnector) DeleteAndUnregisterDynamicService(dynamicService DynamicServiceRequest) error {
-	url := t.Address + "/dynamicservice"
-	body, err := json.Marshal(dynamicService)
-	if err != nil {
-		logger.Error("DeleteAndUnregisterDynamicService error:", err)
-		return err
-	}
-
-	status, body, err := brokerHttp.RestDELETE(url, string(body), &brokerHttp.BasicAuth{t.Username, t.Password}, t.Client)
-	if status != http.StatusOK {
-		return errors.New("Bad response status: " + strconv.Itoa(status) + ". Body: " + string(body))
-	}
-	return err
+	return template, nil
 }

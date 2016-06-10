@@ -35,6 +35,7 @@ type StateService interface {
 	ReportProgress(guid string, state string, err error)
 	HasProgressRecords(guid string) bool
 	ReadProgress(guid string) (time.Time, string, error)
+	NotifyCatalog(guid string, state string, err error)
 }
 
 type StateMemoryService struct{}
@@ -71,4 +72,9 @@ func (s *StateMemoryService) ReadProgress(guid string) (time.Time, string, error
 	se := state_map[guid]
 	state_mutex.RUnlock()
 	return se.ts, se.state, se.err
+}
+
+func (s *StateMemoryService) NotifyCatalog(guid string, state string, err error) {
+	logger.Info("[StateMemoryService] service:", guid, ", state:", state, err)
+	//todo sent it to Catalog ms
 }

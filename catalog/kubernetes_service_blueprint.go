@@ -158,6 +158,14 @@ func CreateKubernetesComponentFromBlueprint(blueprint KubernetesBlueprint) (*Kub
 	return result, nil
 }
 
+func GetCatalogFilesPath(catalogPath, templateDirName, planDirName string) (plan_path, secrets_path, k8s_plan_path string) {
+	svc_path := catalogPath + templateDirName + "/"
+	plan_path = svc_path + planDirName + "/"
+	secrets_path = svc_path + "secretTemplates/"
+	k8s_plan_path = plan_path + "k8s/"
+	return
+}
+
 func GetKubernetesBlueprint(catalogPath, templateDirName, planDirName, templateId string) (KubernetesBlueprint, error) {
 	result := KubernetesBlueprint{}
 	var err error
@@ -169,10 +177,7 @@ func GetKubernetesBlueprint(catalogPath, templateDirName, planDirName, templateI
 		return blueprint, nil
 	}
 
-	svc_path := catalogPath + templateDirName + "/"
-	plan_path := svc_path + planDirName + "/"
-	secrets_path := svc_path + "secretTemplates/"
-	k8s_plan_path := plan_path + "k8s/"
+	plan_path, secrets_path, k8s_plan_path := GetCatalogFilesPath(catalogPath, templateDirName, planDirName)
 
 	result.PersistentVolumeClaim, err = read_k8s_json_files_with_prefix_from_dir(k8s_plan_path, "persistentvolumeclaim")
 	if err != nil {

@@ -19,11 +19,15 @@ package main
 import (
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/gocraft/web"
 
+	"github.com/cloudfoundry-community/go-cfenv"
 	"github.com/trustedanalytics/kubernetes-broker/app/container_broker/api"
 	templateRepositoryApi "github.com/trustedanalytics/kubernetes-broker/app/template_repository/api"
 	"github.com/trustedanalytics/kubernetes-broker/k8s"
@@ -34,9 +38,15 @@ import (
 type appHandler func(web.ResponseWriter, *web.Request) error
 
 var logger = logger_wrapper.InitLogger("main")
+var working = true
+var waitGroup = &sync.WaitGroup{}
 
 func main() {
+	signalChan := make(chan os.Signal, 1)
+
 	initServices()
+	go runJobsProcessor()
+	go terminationObserver(signalChan)
 
 	r := web.New(api.Context{})
 	r.Middleware(web.LoggerMiddleware)
@@ -44,7 +54,7 @@ func main() {
 	r.Middleware((*api.Context).BasicAuthorizeMiddleware)
 
 	r.Put("/service", (*api.Context).CreateServiceInstance)
-	r.Delete("/service/:instance_id", (*api.Context).DeleteServiceInstance)
+	r.Delete("/service", (*api.Context).DeleteServiceInstance)
 
 	port := os.Getenv("CONTAINER_BROKER_PORT")
 	logger.Info("Will listen on:", port)
@@ -117,4 +127,29 @@ func getTemplateRepostoryAddress() string {
 		}
 	}
 	return "localhost" + ":" + os.Getenv("TEMPLATE_REPOSITORY_PORT")
+}
+
+func runJobsProcessor() {
+	maxOrgsNo, err := strconv.Atoi(cfenv.CurrentEnv()["CHECK_JOB_INTERVAL_SEC"])
+	if err != nil {
+		logger.Fatal("CHECK_JOB_INTERVAL_SEC env not set or incorrect: " + err.Error())
+	}
+
+	waitGroup.Add(1)
+	for working {
+		time.Sleep(time.Duration(maxOrgsNo) * time.Second)
+		api.BrokerConfig.KubernetesApi.ProcessJobsResult(api.BrokerConfig.K8sClusterCredentials, api.BrokerConfig.StateService)
+	}
+	waitGroup.Done()
+}
+
+func terminationObserver(signalChan chan os.Signal) {
+	signal.Notify(signalChan, os.Interrupt)
+	for _ = range signalChan {
+		logger.Info("Container-broker is going to be stopped now...")
+		working = false
+		waitGroup.Wait()
+		logger.Info("Container-broker stopped!")
+		os.Exit(1)
+	}
 }

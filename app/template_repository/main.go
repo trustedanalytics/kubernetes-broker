@@ -49,8 +49,6 @@ func main() {
 	r.Get("/catalog", (*api.Context).Catalog)
 	r.Post("/catalog/parsed", (*api.Context).GenerateParsedTemplate)
 	r.Put("/catalog", (*api.Context).CreateTemplate)
-	r.Put("/dynamicservice", (*api.Context).CreateAndRegisterDynamicService)
-	r.Delete("/dynamicservice", (*api.Context).DeleteAndUnregisterDynamicService)
 
 	port := os.Getenv("TEMPLATE_REPOSITORY_PORT")
 	logger.Info("Will listen on:", port)

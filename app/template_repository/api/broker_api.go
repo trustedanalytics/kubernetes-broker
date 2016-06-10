@@ -64,14 +64,13 @@ func (c *Context) GenerateParsedTemplate(rw web.ResponseWriter, req *web.Request
 		return
 	}
 
-	template := catalog.GetTemplateMetadataById(req_json.TemplateId)
-	component, err := catalog.GetParsedKubernetesComponentByTemplate(catalog.CatalogPath, req_json.Uuid,
-		req_json.OrgId, req_json.SpaceId, template)
+	templateMetadata := catalog.GetTemplateMetadataById(req_json.TemplateId)
+	tempalte, err := catalog.GetParsedTemplate(templateMetadata, catalog.CatalogPath, req_json.Uuid, req_json.OrgId, req_json.SpaceId)
 	if err != nil {
 		util.Respond500(rw, err)
 		return
 	}
-	util.WriteJson(rw, component, http.StatusOK)
+	util.WriteJson(rw, tempalte, http.StatusOK)
 }
 
 func (c *Context) CreateTemplate(rw web.ResponseWriter, req *web.Request) {
@@ -95,55 +94,6 @@ func (c *Context) CreateTemplate(rw web.ResponseWriter, req *web.Request) {
 		return
 	}
 	util.WriteJson(rw, "", http.StatusCreated)
-}
-
-type DynamicServiceRequest struct {
-	DynamicService catalog.DynamicService `json:"dynamicService"`
-}
-
-func (c *Context) CreateAndRegisterDynamicService(rw web.ResponseWriter, req *web.Request) {
-	req_json := DynamicServiceRequest{}
-
-	err := util.ReadJson(req, &req_json)
-	if err != nil {
-		util.Respond500(rw, err)
-		return
-	}
-
-	if catalog.CheckIfServiceAlreadyExist(req_json.DynamicService.ServiceName) {
-		util.Respond500(rw, errors.New("Service with name: "+req_json.DynamicService.ServiceName+" already exists!"))
-		return
-	}
-
-	blueprint, _, service, err := catalog.CreateDynamicService(req_json.DynamicService)
-	if err != nil {
-		logger.Error("[CreateAndRegisterDynamicService] CreateDynamicService fail!", err)
-		util.Respond500(rw, err)
-		return
-	}
-
-	catalog.RegisterOfferingInCatalog(service, blueprint)
-	util.WriteJson(rw, "", http.StatusCreated)
-}
-
-func (c *Context) DeleteAndUnregisterDynamicService(rw web.ResponseWriter, req *web.Request) {
-	req_json := DynamicServiceRequest{}
-
-	err := util.ReadJson(req, &req_json)
-	if err != nil {
-		util.Respond500(rw, err)
-		return
-	}
-
-	service, err := catalog.GetServiceByName(req_json.DynamicService.ServiceName)
-	if err != nil {
-		logger.Error("[DeleteAndUnRegisterDynamicService] Delete DynamicService fail!", err)
-		util.WriteJson(rw, "", http.StatusGone)
-		return
-	}
-
-	catalog.UnregisterOfferingFromCatalog(service)
-	util.WriteJson(rw, "", http.StatusNoContent)
 }
 
 func (c *Context) Error(rw web.ResponseWriter, r *web.Request, err interface{}) {

@@ -23,6 +23,7 @@ import (
 	"github.com/gocraft/web"
 
 	"github.com/trustedanalytics/kubernetes-broker/app/template_repository/api"
+	"github.com/trustedanalytics/kubernetes-broker/catalog"
 	"github.com/trustedanalytics/kubernetes-broker/k8s"
 	"github.com/trustedanalytics/kubernetes-broker/logger"
 	"github.com/trustedanalytics/kubernetes-broker/state"
@@ -48,7 +49,7 @@ func (c *Context) CheckBrokerConfig(rw web.ResponseWriter, req *web.Request, nex
 	next(rw, req)
 }
 
-type CreateServiceInstanceRequest struct {
+type ServiceInstanceRequest struct {
 	Uuid       string `json:"uuid"`
 	TemplateId string `json:"templateId"`
 	OrgId      string `json:"orgId"`
@@ -56,51 +57,73 @@ type CreateServiceInstanceRequest struct {
 }
 
 func (c *Context) CreateServiceInstance(rw web.ResponseWriter, req *web.Request) {
-	req_json := CreateServiceInstanceRequest{}
-
-	err := util.ReadJson(req, &req_json)
+	req_json, templateRequest, err := ParseServiceInstanceRequest(req)
 	if err != nil {
 		util.Respond500(rw, err)
 		return
 	}
 
-	BrokerConfig.StateService.ReportProgress(req_json.Uuid, "IN_PROGRESS_STARTED", nil)
+	BrokerConfig.StateService.NotifyCatalog(req_json.Uuid, "IN_PROGRESS_STARTED", nil)
+	template, err := BrokerConfig.TemplateRepository.GenerateParsedTemplate(templateRequest)
+	if err != nil {
+		BrokerConfig.StateService.NotifyCatalog(req_json.Uuid, "FAILED", err)
+		util.Respond500(rw, err)
+		return
+	}
+	BrokerConfig.StateService.NotifyCatalog(req_json.Uuid, "IN_PROGRESS_BLUEPRINT_OK", nil)
+
+	_, err = BrokerConfig.KubernetesApi.FabricateService(BrokerConfig.K8sClusterCredentials, req_json.SpaceId,
+		req_json.Uuid, "", BrokerConfig.StateService, &template.Body)
+	if err != nil {
+		BrokerConfig.StateService.NotifyCatalog(req_json.Uuid, "FAILED", err)
+		util.Respond500(rw, err)
+		return
+	}
+
+	BrokerConfig.KubernetesApi.CreateJobsByType(BrokerConfig.K8sClusterCredentials, template.Hooks, req_json.Uuid,
+		catalog.JobTypeOnCreateInstance, BrokerConfig.StateService)
+
+	BrokerConfig.StateService.NotifyCatalog(req_json.Uuid, "IN_PROGRESS_KUBERNETES_OK", nil)
+	util.WriteJson(rw, "", http.StatusAccepted)
+}
+
+func (c *Context) DeleteServiceInstance(rw web.ResponseWriter, req *web.Request) {
+	req_json, templateRequest, err := ParseServiceInstanceRequest(req)
+	if err != nil {
+		util.Respond500(rw, err)
+		return
+	}
+
+	template, err := BrokerConfig.TemplateRepository.GenerateParsedTemplate(templateRequest)
+	if err != nil {
+		BrokerConfig.StateService.NotifyCatalog(req_json.Uuid, "Delete FAILED", err)
+		util.Respond500(rw, err)
+		return
+	}
+	BrokerConfig.KubernetesApi.CreateJobsByType(BrokerConfig.K8sClusterCredentials, template.Hooks, req_json.Uuid,
+		catalog.JobTypeOnDeleteInstance, BrokerConfig.StateService)
+
+	err = BrokerConfig.KubernetesApi.DeleteAllByServiceId(BrokerConfig.K8sClusterCredentials, req_json.Uuid)
+	if err != nil {
+		BrokerConfig.StateService.NotifyCatalog(req_json.Uuid, "Delete FAILED", err)
+		util.Respond500(rw, err)
+		return
+	}
+
+	BrokerConfig.StateService.NotifyCatalog(req_json.Uuid, "Delete SUCCESS", err)
+	util.WriteJson(rw, "", http.StatusOK)
+}
+
+func ParseServiceInstanceRequest(req *web.Request) (ServiceInstanceRequest, api.GenerateParsedTemplateRequest, error) {
+	req_json := ServiceInstanceRequest{}
+	err := util.ReadJson(req, &req_json)
 	templateRequest := api.GenerateParsedTemplateRequest{
 		Uuid:       req_json.Uuid,
 		TemplateId: req_json.TemplateId,
 		OrgId:      req_json.OrgId,
 		SpaceId:    req_json.SpaceId,
 	}
-	component, err := BrokerConfig.TemplateRepository.GenerateParsedTemplate(templateRequest)
-	if err != nil {
-		BrokerConfig.StateService.ReportProgress(req_json.Uuid, "FAILED", err)
-		util.Respond500(rw, err)
-		return
-	}
-	BrokerConfig.StateService.ReportProgress(req_json.Uuid, "IN_PROGRESS_BLUEPRINT_OK", nil)
-
-	_, err = BrokerConfig.KubernetesApi.FabricateService(BrokerConfig.K8sClusterCredentials, req_json.SpaceId,
-		req_json.Uuid, "", BrokerConfig.StateService, &component)
-	if err != nil {
-		BrokerConfig.StateService.ReportProgress(req_json.Uuid, "FAILED", err)
-		util.Respond500(rw, err)
-		return
-	}
-	BrokerConfig.StateService.ReportProgress(req_json.Uuid, "IN_PROGRESS_KUBERNETES_OK", nil)
-	util.WriteJson(rw, "", http.StatusAccepted)
-}
-
-func (c *Context) DeleteServiceInstance(rw web.ResponseWriter, req *web.Request) {
-	instance_id := req.PathParams["instance_id"]
-
-	err := BrokerConfig.KubernetesApi.DeleteAllByServiceId(BrokerConfig.K8sClusterCredentials, instance_id)
-	if err != nil {
-		util.Respond500(rw, err)
-		return
-	}
-
-	logger.Info("Service DELETED. Id:", instance_id)
-	util.WriteJson(rw, "", http.StatusOK)
+	return req_json, templateRequest, err
 }
 
 func (c *Context) Error(rw web.ResponseWriter, r *web.Request, err interface{}) {
