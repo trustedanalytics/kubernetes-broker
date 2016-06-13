@@ -33,6 +33,13 @@ docker_build_container_broker: build_ms
 	rm -f app/container_broker/container_broker
 	rm -Rf app/container_broker/catalogData
 
+docker_build_kubernetes_broker: build
+	cp -f application/kubernetes-broker app/tap/kubernetes-broker
+	cp -Rf catalogData app/tap/catalogData
+	docker build -t tap/kubernetes_broker app/tap
+	rm -f app/tap/kubernetes-broker
+	rm -Rf app/tap/catalogData
+
 local_bin/app: verify_gopath
 	CGO_ENABLED=0 go install -tags local $(APP_DIR_LIST)
 	go fmt $(APP_DIR_LIST)

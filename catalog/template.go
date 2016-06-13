@@ -15,6 +15,8 @@ type JobType string
 const (
 	JobTypeOnCreateInstance JobType = "onCreateInstance"
 	JobTypeOnDeleteInstance JobType = "onDeleteInstance"
+	JobTypeOnBindInstance   JobType = "onBindInstance"
+	JobTypeOnUnbindInstance JobType = "onUnbindInstance"
 )
 
 type Template struct {
@@ -49,18 +51,20 @@ func GetTemplateMetadataById(id string) *TemplateMetadata {
 
 func GetAvailableTemplates() map[string]*TemplateMetadata {
 	if TEMPLATES != nil {
-		return TEMPLATES
-	} else {
-		TEMPLATES = make(map[string]*TemplateMetadata)
-		logger.Debug("GetAvailableTemplates - need to parse catalog/ directory.")
-		template_file_info, err := ioutil.ReadDir(TemplatesPath)
-		if err != nil {
-			logger.Panic(err)
-		}
-		for _, templateDir := range template_file_info {
-			loadTemplateMetadata(templateDir)
-		}
-		return TEMPLATES
+		LoadAvailableTemplates()
+	}
+	return TEMPLATES
+}
+
+func LoadAvailableTemplates() {
+	TEMPLATES = make(map[string]*TemplateMetadata)
+	logger.Debug("GetAvailableTemplates - need to parse catalog/ directory.")
+	template_file_info, err := ioutil.ReadDir(TemplatesPath)
+	if err != nil {
+		logger.Panic(err)
+	}
+	for _, templateDir := range template_file_info {
+		loadTemplateMetadata(templateDir)
 	}
 }
 
@@ -170,11 +174,7 @@ func AddAndRegisterCustomTemplate(template Template) error {
 		return err
 	}
 
-	registerTemplateInCatalog(&TemplateMetadata{
-		Id:                  template.Id,
-		TemplatePlanDirName: templatePlanDir,
-		TemplateDirName:     templateDir,
-	})
+	LoadAvailableTemplates()
 	return nil
 }
 
@@ -222,11 +222,4 @@ func GetParsedJobHooks(jobs []string, instanceId, svcMetaId, planMetaId, org, sp
 func GetJobHooks(catalogPath string, temp *TemplateMetadata) ([]string, error) {
 	_, _, k8sPlanPath := GetCatalogFilesPath(catalogPath, temp.TemplateDirName, temp.TemplatePlanDirName)
 	return read_k8s_json_files_with_prefix_from_dir(k8sPlanPath, "job")
-}
-
-func registerTemplateInCatalog(template *TemplateMetadata) {
-	template_mutex.Lock()
-	TEMPLATES[template.Id] = template
-	template_mutex.Unlock()
-	logger.Info(fmt.Sprintf("Template %s registred in catalog!", template.Id))
 }

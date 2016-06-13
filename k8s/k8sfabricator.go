@@ -229,12 +229,12 @@ jobs:
 		if job.Status.Failed > 0 {
 			ss.NotifyCatalog(serviceId, fmt.Sprintf("Job with name: %s and serviceId: %s FAILED! Pod logs:", job.Name, serviceId), err)
 		}
-		if job.Status.Succeeded > 0 && job.Annotations["createSecret"] == "true" {
-			_, err = client.ConfigMaps(api.NamespaceDefault).Create(getSecretFromLogs(job, logs))
+		if job.Status.Succeeded > 0 && job.Annotations["createConfigMap"] == "true" {
+			_, err = client.ConfigMaps(api.NamespaceDefault).Create(getConfigMapFromLogs(job, logs))
 			if err != nil {
 				ss.NotifyCatalog(serviceId, fmt.Sprintf("Can't save Jobs credentials! Job name: %s, serviceId: %s. Logs: %v", job.Name, serviceId, logs), err)
 			} else {
-				ss.NotifyCatalog(serviceId, fmt.Sprintf("Job with name: %s and serviceId: %s COMPLETED SUCCESSFULLY!", job.Name, serviceId), err)
+				ss.NotifyCatalog(serviceId, fmt.Sprintf("Job with name: %s and serviceId: %s SAVED SUCCESSFULLY in ConfMap!", job.Name, serviceId), err)
 			}
 		}
 		err = extensionsClient.Jobs(api.NamespaceDefault).Delete(job.Name, &api.DeleteOptions{})
@@ -266,7 +266,7 @@ func getPodsLogs(client KubernetesClient, selector labels.Selector) (map[string]
 	return result, nil
 }
 
-func getSecretFromLogs(job extensions.Job, logs map[string]string) *api.ConfigMap {
+func getConfigMapFromLogs(job extensions.Job, logs map[string]string) *api.ConfigMap {
 	return &api.ConfigMap{
 		ObjectMeta: api.ObjectMeta{Name: job.Name, Labels: job.Labels},
 		Data:       logs,

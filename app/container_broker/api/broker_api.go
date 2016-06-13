@@ -88,30 +88,62 @@ func (c *Context) CreateServiceInstance(rw web.ResponseWriter, req *web.Request)
 }
 
 func (c *Context) DeleteServiceInstance(rw web.ResponseWriter, req *web.Request) {
-	req_json, templateRequest, err := ParseServiceInstanceRequest(req)
+	uuid, err := getUuidAndCreateJobByType(req, catalog.JobTypeOnDeleteInstance)
 	if err != nil {
+		BrokerConfig.StateService.NotifyCatalog(uuid, "Delete FAILED during job creation!", err)
 		util.Respond500(rw, err)
 		return
+	}
+
+	err = BrokerConfig.KubernetesApi.DeleteAllByServiceId(BrokerConfig.K8sClusterCredentials, uuid)
+	if err != nil {
+		BrokerConfig.StateService.NotifyCatalog(uuid, "Delete FAILED", err)
+		util.Respond500(rw, err)
+		return
+	}
+
+	BrokerConfig.StateService.NotifyCatalog(uuid, "Delete SUCCESS", err)
+	util.WriteJson(rw, "", http.StatusOK)
+}
+
+func (c *Context) Bind(rw web.ResponseWriter, req *web.Request) {
+	uuid, err := getUuidAndCreateJobByType(req, catalog.JobTypeOnBindInstance)
+	if err != nil {
+		BrokerConfig.StateService.NotifyCatalog(uuid, "Bind FAILED", err)
+		util.Respond500(rw, err)
+		return
+	}
+
+	BrokerConfig.StateService.NotifyCatalog(uuid, "Bind SUCCESS", err)
+	util.WriteJson(rw, "", http.StatusOK)
+}
+
+func (c *Context) Unbind(rw web.ResponseWriter, req *web.Request) {
+	uuid, err := getUuidAndCreateJobByType(req, catalog.JobTypeOnUnbindInstance)
+	if err != nil {
+		BrokerConfig.StateService.NotifyCatalog(uuid, "Unbind FAILED", err)
+		util.Respond500(rw, err)
+		return
+	}
+
+	BrokerConfig.StateService.NotifyCatalog(uuid, "Unbind SUCCESS", err)
+	util.WriteJson(rw, "", http.StatusOK)
+}
+
+func getUuidAndCreateJobByType(req *web.Request, jobType catalog.JobType) (string, error) {
+	req_json, templateRequest, err := ParseServiceInstanceRequest(req)
+	if err != nil {
+		return "", err
 	}
 
 	template, err := BrokerConfig.TemplateRepository.GenerateParsedTemplate(templateRequest)
 	if err != nil {
-		BrokerConfig.StateService.NotifyCatalog(req_json.Uuid, "Delete FAILED", err)
-		util.Respond500(rw, err)
-		return
-	}
-	BrokerConfig.KubernetesApi.CreateJobsByType(BrokerConfig.K8sClusterCredentials, template.Hooks, req_json.Uuid,
-		catalog.JobTypeOnDeleteInstance, BrokerConfig.StateService)
-
-	err = BrokerConfig.KubernetesApi.DeleteAllByServiceId(BrokerConfig.K8sClusterCredentials, req_json.Uuid)
-	if err != nil {
-		BrokerConfig.StateService.NotifyCatalog(req_json.Uuid, "Delete FAILED", err)
-		util.Respond500(rw, err)
-		return
+		return req_json.Uuid, err
 	}
 
-	BrokerConfig.StateService.NotifyCatalog(req_json.Uuid, "Delete SUCCESS", err)
-	util.WriteJson(rw, "", http.StatusOK)
+	err = BrokerConfig.KubernetesApi.CreateJobsByType(BrokerConfig.K8sClusterCredentials, template.Hooks, req_json.Uuid,
+		jobType, BrokerConfig.StateService)
+	return req_json.Uuid, err
 }
 
 func ParseServiceInstanceRequest(req *web.Request) (ServiceInstanceRequest, api.GenerateParsedTemplateRequest, error) {
@@ -122,6 +154,15 @@ func ParseServiceInstanceRequest(req *web.Request) (ServiceInstanceRequest, api.
 		TemplateId: req_json.TemplateId,
 		OrgId:      req_json.OrgId,
 		SpaceId:    req_json.SpaceId,
+	}
+	if err != nil {
+		return req_json, templateRequest, err
+	}
+	if req_json.Uuid == "" {
+		return req_json, templateRequest, errors.New("UUID can not be empty!")
+	}
+	if req_json.TemplateId == "" {
+		return req_json, templateRequest, errors.New("TeplateId can not be empty!")
 	}
 	return req_json, templateRequest, err
 }

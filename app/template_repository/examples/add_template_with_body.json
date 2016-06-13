@@ -1,0 +1,52 @@
+{
+  "Id": "test1",
+  "body": {
+    "replicationControllers": [
+      {
+        "kind": "ReplicationController",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "$idx_and_short_serviceid",
+          "labels": {
+            "service_id": "$service_id",
+            "managed_by": "TAP"
+          }
+        },
+        "spec": {
+          "replicas": 1,
+          "selector": {
+            "service_id": "$service_id",
+            "managed_by": "TAP"
+          },
+          "template": {
+            "metadata": {
+              "labels": {
+                "service_id": "$service_id",
+                "managed_by": "TAP"
+              }
+            },
+            "spec": {
+              "volumes": null,
+              "containers": [
+                {
+                  "name": "k-mongodb30",
+                  "image": "frodenas/mongodb:3.0",
+                  "command": ["/scripts/run.sh", "--smallfiles", "--httpinterface"],
+                  "ports": [
+                    {
+                      "containerPort": 27017,
+                      "protocol": "TCP"
+                    }
+                  ],
+                  "imagePullPolicy": "IfNotPresent"
+                }
+              ],
+              "restartPolicy": "Always",
+              "dnsPolicy": "ClusterFirst"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

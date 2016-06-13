@@ -52,7 +52,7 @@ type GenerateParsedTemplateRequest struct {
 	Uuid       string `json:"uuid"`
 	OrgId      string `json:"orgId"`
 	SpaceId    string `json:"spaceId"`
-	TemplateId string `json:"spaceId"`
+	TemplateId string `json:"templateId"`
 }
 
 func (c *Context) GenerateParsedTemplate(rw web.ResponseWriter, req *web.Request) {
@@ -65,6 +65,10 @@ func (c *Context) GenerateParsedTemplate(rw web.ResponseWriter, req *web.Request
 	}
 
 	templateMetadata := catalog.GetTemplateMetadataById(req_json.TemplateId)
+	if templateMetadata == nil {
+		util.Respond500(rw, errors.New(fmt.Sprintf("Can't find template by id: %s", req_json.TemplateId)))
+		return
+	}
 	tempalte, err := catalog.GetParsedTemplate(templateMetadata, catalog.CatalogPath, req_json.Uuid, req_json.OrgId, req_json.SpaceId)
 	if err != nil {
 		util.Respond500(rw, err)
@@ -79,6 +83,11 @@ func (c *Context) CreateTemplate(rw web.ResponseWriter, req *web.Request) {
 	err := util.ReadJson(req, &reqTemplate)
 	if err != nil {
 		util.Respond500(rw, err)
+		return
+	}
+
+	if reqTemplate.Id == "" {
+		util.Respond500(rw, errors.New("Teplate Id can not be empty!"))
 		return
 	}
 

@@ -1,0 +1,50 @@
+{
+  "Id": "test2",
+  "hooks": [
+    {
+      "type": "onBindInstance",
+      "job":
+      {
+        "kind": "Job",
+        "apiVersion": "batch/v1",
+        "metadata": {
+          "name": "pi-1",
+          "creationTimestamp": null,
+          "labels": {
+            "managed_by": "TAP",
+            "service_id": "service-pi"
+          },
+          "annotations": {
+            "createConfigMap": "true"
+          }
+        },
+        "spec": {
+          "template": {
+            "metadata": {
+              "creationTimestamp": null,
+              "labels": {
+                "managed_by": "TAP",
+                "service_id": "service-pi"
+              }
+            },
+            "spec": {
+              "volumes": null,
+              "containers": [
+                {
+                  "name": "pi",
+                  "image": "tutum/curl:latest",
+                  "command": ["/bin/bash"],
+                  "args": ["-c", "curl 172.17.0.2:8081/v2/catalog --user admin:password"],
+                  "resources": {},
+                  "imagePullPolicy": "IfNotPresent"
+                }
+              ],
+              "restartPolicy": "Never",
+              "dnsPolicy": "ClusterFirst",
+              "serviceAccountName": ""
+            }
+          }
+        }
+    }
+  ]
+}

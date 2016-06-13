@@ -38,7 +38,7 @@ var logger = logger_wrapper.InitLogger("main")
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	catalog.GetAvailableTemplates()
+	catalog.LoadAvailableTemplates()
 	initServices()
 
 	r := web.New(api.Context{})

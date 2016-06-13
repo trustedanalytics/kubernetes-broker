@@ -41,11 +41,11 @@ type KubernetesBlueprint struct {
 }
 
 type KubernetesComponent struct {
-	PersistentVolumeClaims []*api.PersistentVolumeClaim
-	ReplicationControllers []*api.ReplicationController
-	Services               []*api.Service
-	ServiceAccounts        []*api.ServiceAccount
-	Secrets                []*api.Secret
+	PersistentVolumeClaims []*api.PersistentVolumeClaim `json:"persistentVolumeClaims"`
+	ReplicationControllers []*api.ReplicationController `json:"replicationControllers"`
+	Services               []*api.Service               `json:"services"`
+	ServiceAccounts        []*api.ServiceAccount        `json:"serviceAccounts"`
+	Secrets                []*api.Secret                `json:"secrets"`
 }
 
 var TEMP_DYNAMIC_BLUEPRINTS = map[string]KubernetesBlueprint{}

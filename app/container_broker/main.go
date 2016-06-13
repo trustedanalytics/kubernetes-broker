@@ -55,6 +55,8 @@ func main() {
 
 	r.Put("/service", (*api.Context).CreateServiceInstance)
 	r.Delete("/service", (*api.Context).DeleteServiceInstance)
+	r.Post("/bind", (*api.Context).Bind)
+	r.Post("/unbind", (*api.Context).Unbind)
 
 	port := os.Getenv("CONTAINER_BROKER_PORT")
 	logger.Info("Will listen on:", port)
