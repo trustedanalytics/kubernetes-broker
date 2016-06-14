@@ -468,13 +468,13 @@ func removeCluster(creds k8s.K8sClusterCredentials, org string) {
 			return
 		}
 
-		controllers, err := brokerConfig.KubernetesApi.ListReplicationControllers(creds)
+		deployments, err := brokerConfig.KubernetesApi.ListDeployments(creds)
 		if err != nil {
-			logger.Error("[removeCluster] ListReplicationControllers error. Org:", org, err)
+			logger.Error("[removeCluster] ListDeployments error. Org:", org, err)
 			return
 		}
 
-		if len(services) == 0 && len(controllers.Items) == 0 {
+		if len(services) == 0 && len(deployments.Items) == 0 {
 			err = brokerConfig.KubernetesApi.DeleteAllPersistentVolumeClaims(creds)
 			if err != nil {
 				logger.Error("[removeCluster] DeleteAllPersistentVolumeClaims error. Org:", org, err)

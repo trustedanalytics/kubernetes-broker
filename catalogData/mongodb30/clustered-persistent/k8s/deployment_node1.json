@@ -1,0 +1,80 @@
+{
+  "kind": "Deployment",
+  "apiVersion": "extensions/v1beta1",
+  "metadata": {
+    "name": "$idx_and_short_serviceid-node1",
+    "labels": {
+      "org": "$org",
+      "space": "$space",
+      "catalog_service_id": "$catalog_service_id",
+      "catalog_plan_id": "$catalog_plan_id",
+      "service_id": "$service_id",
+      "idx_and_short_serviceid": "$idx_and_short_serviceid-node1",
+      "managed_by": "TAP",
+      "instance": "node1"
+    }
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "matchLabels" : {
+        "service_id": "$service_id",
+        "idx_and_short_serviceid": "$idx_and_short_serviceid-node1"
+      }
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "service_id": "$service_id",
+          "idx_and_short_serviceid": "$idx_and_short_serviceid-node1",
+          "managed_by": "TAP",
+          "instance": "node1"
+        }
+      },
+      "spec": {
+        "volumes": [
+          {
+            "name": "mongo-secret-volume",
+            "secret": {
+              "secretName": "$short_serviceid-mongodb30-clustered-secret-keyfile"
+            }
+          },
+          {
+            "name": "mongo-node1-persistent-storage",
+            "persistentVolumeClaim": {
+              "claimName": "$idx_and_short_serviceid-node1"
+            }
+          }
+        ],
+        "containers": [
+          {
+            "name": "mongo-node1",
+            "image": "frodenas/mongodb:3.0",
+            "command": ["/bin/sh"],
+            "args": ["-c", "chmod 600 /etc/mongo-secret-volume/keyfile && /scripts/run.sh --replSet replica --keyFile /etc/mongo-secret-volume/keyfile"],
+            "ports": [
+              {
+                "containerPort": 27017,
+                "protocol": "TCP"
+              }
+            ],
+            "volumeMounts": [
+              {
+                "name": "mongo-secret-volume",
+                "readOnly": false,
+                "mountPath": "/etc/mongo-secret-volume"
+              },
+              {
+                "name": "mongo-node1-persistent-storage",
+                "mountPath": "/data/db"
+              }
+            ],
+            "imagePullPolicy": "IfNotPresent"
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
+      }
+    }
+  }
+}

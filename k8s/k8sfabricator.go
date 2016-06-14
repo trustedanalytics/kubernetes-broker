@@ -46,7 +46,7 @@ type KubernetesApi interface {
 	GetClusterWorkers(creds K8sClusterCredentials) ([]string, error)
 	GetPodsStateByServiceId(creds K8sClusterCredentials, service_id string) ([]PodStatus, error)
 	GetPodsStateForAllServices(creds K8sClusterCredentials) (map[string][]PodStatus, error)
-	ListReplicationControllers(creds K8sClusterCredentials) (*api.ReplicationControllerList, error)
+	ListDeployments(creds K8sClusterCredentials) (*extensions.DeploymentList, error)
 	GetSecret(creds K8sClusterCredentials, key string) (*api.Secret, error)
 	CreateSecret(creds K8sClusterCredentials, secret api.Secret) error
 	DeleteSecret(creds K8sClusterCredentials, key string) error
@@ -84,7 +84,7 @@ func (k *K8Fabricator) FabricateService(creds K8sClusterCredentials, space, cf_s
 	ss state.StateService, component *catalog.KubernetesComponent) (FabricateResult, error) {
 	result := FabricateResult{"", map[string]string{}}
 
-	c, err := k.KubernetesClient.GetNewClient(creds)
+	client, extensionsClient, err := k.getKubernetesClientAndExtensionClient(creds)
 	if err != nil {
 		return result, err
 	}
@@ -113,7 +113,7 @@ func (k *K8Fabricator) FabricateService(creds K8sClusterCredentials, space, cf_s
 	ss.ReportProgress(cf_service_id, "IN_PROGRESS_CREATING_SECRETS", nil)
 	for idx, sc := range component.Secrets {
 		ss.ReportProgress(cf_service_id, "IN_PROGRESS_CREATING_SECRET"+strconv.Itoa(idx), nil)
-		_, err = c.Secrets(api.NamespaceDefault).Create(sc)
+		_, err = client.Secrets(api.NamespaceDefault).Create(sc)
 		if err != nil {
 			ss.ReportProgress(cf_service_id, "FAILED", err)
 			return result, err
@@ -123,21 +123,21 @@ func (k *K8Fabricator) FabricateService(creds K8sClusterCredentials, space, cf_s
 	ss.ReportProgress(cf_service_id, "IN_PROGRESS_CREATING_PERSIST_VOL_CLAIMS", nil)
 	for idx, claim := range component.PersistentVolumeClaims {
 		ss.ReportProgress(cf_service_id, "IN_PROGRESS_CREATING_PERSIST_VOL_CLAIM"+strconv.Itoa(idx), nil)
-		_, err = c.PersistentVolumeClaims(api.NamespaceDefault).Create(claim)
+		_, err = client.PersistentVolumeClaims(api.NamespaceDefault).Create(claim)
 		if err != nil {
 			ss.ReportProgress(cf_service_id, "FAILED", err)
 			return result, err
 		}
 	}
 
-	ss.ReportProgress(cf_service_id, "IN_PROGRESS_CREATING_RCS", nil)
-	for idx, rc := range component.ReplicationControllers {
-		ss.ReportProgress(cf_service_id, "IN_PROGRESS_CREATING_RC"+strconv.Itoa(idx), nil)
-		for i, container := range rc.Spec.Template.Spec.Containers {
-			rc.Spec.Template.Spec.Containers[i].Env = append(container.Env, extraEnvironments...)
+	ss.ReportProgress(cf_service_id, "IN_PROGRESS_CREATING_DEPLOYMENTS", nil)
+	for idx, deployment := range component.Deployments {
+		ss.ReportProgress(cf_service_id, "IN_PROGRESS_CREATING_DEPLOYMENT"+strconv.Itoa(idx), nil)
+		for i, container := range deployment.Spec.Template.Spec.Containers {
+			deployment.Spec.Template.Spec.Containers[i].Env = append(container.Env, extraEnvironments...)
 		}
 
-		_, err = NewReplicationControllerManager(c).Create(rc)
+		_, err = extensionsClient.Deployments(api.NamespaceDefault).Create(deployment)
 		if err != nil {
 			ss.ReportProgress(cf_service_id, "FAILED", err)
 			return result, err
@@ -147,7 +147,7 @@ func (k *K8Fabricator) FabricateService(creds K8sClusterCredentials, space, cf_s
 	ss.ReportProgress(cf_service_id, "IN_PROGRESS_CREATING_SVCS", nil)
 	for idx, svc := range component.Services {
 		ss.ReportProgress(cf_service_id, "IN_PROGRESS_CREATING_SVC"+strconv.Itoa(idx), nil)
-		_, err = c.Services(api.NamespaceDefault).Create(svc)
+		_, err = client.Services(api.NamespaceDefault).Create(svc)
 		if err != nil {
 			ss.ReportProgress(cf_service_id, "FAILED", err)
 			return result, err
@@ -157,7 +157,7 @@ func (k *K8Fabricator) FabricateService(creds K8sClusterCredentials, space, cf_s
 	ss.ReportProgress(cf_service_id, "IN_PROGRESS_CREATING_ACCS", nil)
 	for idx, acc := range component.ServiceAccounts {
 		ss.ReportProgress(cf_service_id, "IN_PROGRESS_CREATING_ACC"+strconv.Itoa(idx), nil)
-		_, err = c.ServiceAccounts(api.NamespaceDefault).Create(acc)
+		_, err = client.ServiceAccounts(api.NamespaceDefault).Create(acc)
 		if err != nil {
 			ss.ReportProgress(cf_service_id, "FAILED", err)
 			return result, err
@@ -300,8 +300,11 @@ func (k *K8Fabricator) CheckKubernetesServiceHealthByServiceInstanceId(creds K8s
 
 func (k *K8Fabricator) DeleteAllByServiceId(creds K8sClusterCredentials, service_id string) error {
 	logger.Info("[DeleteAllByServiceId] serviceId:", service_id)
-
-	c, selector, err := k.getKubernetesClientWithServiceIdSelector(creds, service_id)
+	c, extensionClient, err := k.getKubernetesClientAndExtensionClient(creds)
+	if err != nil {
+		return err
+	}
+	selector, err := getSelectorForServiceIdLabel(service_id)
 	if err != nil {
 		return err
 	}
@@ -342,8 +345,8 @@ func (k *K8Fabricator) DeleteAllByServiceId(creds K8sClusterCredentials, service
 		}
 	}
 
-	if err = NewReplicationControllerManager(c).DeleteAll(selector); err != nil {
-		logger.Error("[DeleteAllByServiceId] Delete replication controller failed:", err)
+	if err = NewDeploymentControllerManager(extensionClient).DeleteAll(selector); err != nil {
+		logger.Error("[DeleteAllByServiceId] Delete deployment failed:", err)
 		return err
 	}
 
@@ -509,8 +512,8 @@ func (k *K8Fabricator) GetClusterWorkers(creds K8sClusterCredentials) ([]string,
 	return workers, nil
 }
 
-func (k *K8Fabricator) ListReplicationControllers(creds K8sClusterCredentials) (*api.ReplicationControllerList, error) {
-	c, err := k.KubernetesClient.GetNewClient(creds)
+func (k *K8Fabricator) ListDeployments(creds K8sClusterCredentials) (*extensions.DeploymentList, error) {
+	c, err := k.KubernetesClient.GetNewExtensionsClient(creds)
 	if err != nil {
 		return nil, err
 	}
@@ -519,7 +522,7 @@ func (k *K8Fabricator) ListReplicationControllers(creds K8sClusterCredentials) (
 		return nil, err
 	}
 
-	return NewReplicationControllerManager(c).List(selector)
+	return NewDeploymentControllerManager(c).List(selector)
 }
 
 type PodStatus struct {
@@ -653,18 +656,22 @@ func (k *K8Fabricator) GetAllPodsEnvsByServiceId(creds K8sClusterCredentials, sp
 	logger.Info("[GetEnvFromReplicationControllerByServiceIdLabel] serviceId:", service_id)
 	result := []PodEnvs{}
 
-	c, selector, err := k.getKubernetesClientWithServiceIdSelector(creds, service_id)
+	c, extensionClient, err := k.getKubernetesClientAndExtensionClient(creds)
+	if err != nil {
+		return result, err
+	}
+	selector, err := getSelectorForServiceIdLabel(service_id)
 	if err != nil {
 		return result, err
 	}
 
-	rcs, err := NewReplicationControllerManager(c).List(selector)
-
+	deployments, err := NewDeploymentControllerManager(extensionClient).List(selector)
 	if err != nil {
 		return result, err
 	}
-	if len(rcs.Items) < 1 {
-		return result, errors.New("No replication controllers associated with the service: " + service_id)
+
+	if len(deployments.Items) < 1 {
+		return result, errors.New("No deployments associated with the service: " + service_id)
 	}
 
 	secrets, err := c.Secrets(api.NamespaceDefault).List(api.ListOptions{
@@ -675,12 +682,12 @@ func (k *K8Fabricator) GetAllPodsEnvsByServiceId(creds K8sClusterCredentials, sp
 		return result, err
 	}
 
-	for _, rc := range rcs.Items {
+	for _, deployment := range deployments.Items {
 		pod := PodEnvs{}
-		pod.RcName = rc.Name
+		pod.RcName = deployment.Name
 		pod.Containers = []ContainerSimple{}
 
-		for _, container := range rc.Spec.Template.Spec.Containers {
+		for _, container := range deployment.Spec.Template.Spec.Containers {
 			simpelContainer := ContainerSimple{}
 			simpelContainer.Name = container.Name
 			simpelContainer.Envs = map[string]string{}

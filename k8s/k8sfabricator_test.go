@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	k8sErrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 
 	"github.com/trustedanalytics/kubernetes-broker/catalog"
 	"github.com/trustedanalytics/kubernetes-broker/state"
@@ -42,10 +43,8 @@ func prepareMocksAndRouter(t *testing.T) (fabricator *K8Fabricator, mockStateSer
 }
 
 const serviceId = "mockKubernetesRest"
-const org = "orgTest"
 const orgHost = "orgHost"
 const space = "spaceTest"
-const domain = "domainTest"
 
 var testCreds K8sClusterCredentials = K8sClusterCredentials{Server: orgHost}
 
@@ -53,8 +52,8 @@ func TestFabricateService(t *testing.T) {
 	fabricator, mockStateService, mockKubernetesRest := prepareMocksAndRouter(t)
 
 	blueprint := &catalog.KubernetesComponent{
-		ReplicationControllers: []*api.ReplicationController{&api.ReplicationController{Spec: api.ReplicationControllerSpec{
-			Template: &api.PodTemplateSpec{Spec: api.PodSpec{
+		Deployments: []*extensions.Deployment{&extensions.Deployment{Spec: extensions.DeploymentSpec{
+			Template: api.PodTemplateSpec{Spec: api.PodSpec{
 				Containers: []api.Container{{}},
 			}}}},
 		},
@@ -70,8 +69,8 @@ func TestFabricateService(t *testing.T) {
 	pvmResponse := &api.PersistentVolumeClaimList{
 		Items: []api.PersistentVolumeClaim{{}},
 	}
-	replicationControllerResponse := &api.ReplicationControllerList{
-		Items: []api.ReplicationController{{}},
+	deploymentResponse := &extensions.DeploymentList{
+		Items: []extensions.Deployment{{}},
 	}
 	serviceResponse := &api.ServiceList{
 		Items: []api.Service{{}},
@@ -83,14 +82,15 @@ func TestFabricateService(t *testing.T) {
 
 	Convey("Test FabricateService", t, func() {
 		Convey("Should returns proper response", func() {
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction(secretResponse, pvmResponse, replicationControllerResponse, serviceResponse, serviceAccountResponse)
+			mockKubernetesRest.LoadSimpleResponsesWithSameAction(secretResponse, pvmResponse, serviceResponse, serviceAccountResponse)
+			mockKubernetesRest.LoadSimpleResponsesWithSameActionForExtensionsClient(deploymentResponse)
 			gomock.InOrder(
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_SECRETS", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_SECRET0", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_PERSIST_VOL_CLAIMS", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_PERSIST_VOL_CLAIM0", nil),
-				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_RCS", nil),
-				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_RC0", nil),
+				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_DEPLOYMENTS", nil),
+				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_DEPLOYMENT0", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_SVCS", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_SVC0", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_ACCS", nil),
@@ -116,15 +116,15 @@ func TestFabricateService(t *testing.T) {
 			So(err, ShouldNotBeNil)
 		})
 
-		Convey("Should returns error on Create ReplicationController fail ", func() {
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction(secretResponse, pvmResponse, restErrorResponse)
-
+		Convey("Should returns error on Create Deployments fail ", func() {
+			mockKubernetesRest.LoadSimpleResponsesWithSameAction(secretResponse, pvmResponse)
+			mockKubernetesRest.LoadSimpleResponsesWithSameActionForExtensionsClient(restErrorResponse)
 			gomock.InOrder(
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_SECRETS", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_SECRET0", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_PERSIST_VOL_CLAIMS", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_PERSIST_VOL_CLAIM0", nil),
-				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_RCS", nil),
+				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_DEPLOYMENTS", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, gomock.Any(), nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, "FAILED", gomock.Any()),
 			)
@@ -134,14 +134,14 @@ func TestFabricateService(t *testing.T) {
 		})
 
 		Convey("Should returns error on Create Service fail ", func() {
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction(secretResponse, pvmResponse, replicationControllerResponse, restErrorResponse)
-
+			mockKubernetesRest.LoadSimpleResponsesWithSameAction(secretResponse, pvmResponse, restErrorResponse)
+			mockKubernetesRest.LoadSimpleResponsesWithSameActionForExtensionsClient(deploymentResponse)
 			gomock.InOrder(
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_SECRETS", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_SECRET0", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_PERSIST_VOL_CLAIMS", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_PERSIST_VOL_CLAIM0", nil),
-				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_RCS", nil),
+				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_DEPLOYMENTS", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, gomock.Any(), nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_SVCS", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, gomock.Any(), nil),
@@ -153,13 +153,14 @@ func TestFabricateService(t *testing.T) {
 		})
 
 		Convey("Should returns error on Create AccountService fail ", func() {
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction(secretResponse, pvmResponse, replicationControllerResponse, serviceResponse, restErrorResponse)
+			mockKubernetesRest.LoadSimpleResponsesWithSameAction(secretResponse, pvmResponse, serviceResponse, restErrorResponse)
+			mockKubernetesRest.LoadSimpleResponsesWithSameActionForExtensionsClient(deploymentResponse)
 			gomock.InOrder(
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_SECRETS", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_SECRET0", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_PERSIST_VOL_CLAIMS", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_PERSIST_VOL_CLAIM0", nil),
-				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_RCS", nil),
+				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_DEPLOYMENTS", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, gomock.Any(), nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, "IN_PROGRESS_CREATING_SVCS", nil),
 				mockStateService.EXPECT().ReportProgress(serviceId, gomock.Any(), nil),
@@ -210,6 +211,7 @@ func TestDeleteAllByServiceId(t *testing.T) {
 	Convey("Test DeleteAllByServiceId", t, func() {
 		Convey("Should returns proper response", func() {
 			mockKubernetesRest.LoadSimpleResponsesWithSameAction()
+			mockKubernetesRest.LoadSimpleResponsesWithSameActionForExtensionsClient()
 
 			err := fabricator.DeleteAllByServiceId(testCreds, serviceId)
 			So(err, ShouldBeNil)
@@ -229,12 +231,13 @@ func TestDeleteAllByServiceId(t *testing.T) {
 			So(err, ShouldNotBeNil)
 		})
 
-		Convey("Should returns error on List ReplicationControlles fail", func() {
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction(getErrorResponseForSpecificResource("ReplicationControllerList"))
+		/*Convey("Should returns error on List Deployments fail", func() {
+			mockKubernetesRest.LoadSimpleResponsesWithSameAction()
+			mockKubernetesRest.LoadSimpleResponsesWithSameActionForExtensionsClient(getErrorResponseForSpecificExtensionsResource("DeploymentList"))
 
 			err := fabricator.DeleteAllByServiceId(testCreds, serviceId)
 			So(err, ShouldNotBeNil)
-		})
+		})*/
 
 		Convey("Should returns error on List Secret fail", func() {
 			mockKubernetesRest.LoadSimpleResponsesWithSameAction(getErrorResponseForSpecificResource("SecretList"))
@@ -249,14 +252,16 @@ func TestGetAllPodsEnvsByServiceId(t *testing.T) {
 	fabricator, _, mockKubernetesRest := prepareMocksAndRouter(t)
 
 	Convey("Test GetAllPodsEnvsByServiceId", t, func() {
+		/*
 		Convey("Should returns proper response", func() {
 			env_name := "name"
 			env_val := "val"
 
-			replicationControllerResponse := &api.ReplicationControllerList{
-				Items: []api.ReplicationController{
-					{Spec: api.ReplicationControllerSpec{
-						Template: &api.PodTemplateSpec{
+			deploymentResponse := &extensions.DeploymentList{
+				Items: []extensions.Deployment{
+					{Spec: extensions.DeploymentSpec{
+						Selector: &unversioned.LabelSelector{MatchLabels: map[string]string{serviceIdLabel: serviceId, managedByLabel: "TAP"}},
+						Template: api.PodTemplateSpec{
 							Spec: api.PodSpec{
 								Containers: []api.Container{
 									{Env: []api.EnvVar{{Name: env_name, Value: env_val}}},
@@ -264,7 +269,7 @@ func TestGetAllPodsEnvsByServiceId(t *testing.T) {
 							}}}},
 				},
 			}
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction(replicationControllerResponse)
+			mockKubernetesRest.LoadSimpleResponsesWithSameActionForExtensionsClient(deploymentResponse)
 
 			result, err := fabricator.GetAllPodsEnvsByServiceId(testCreds, space, serviceId)
 			So(err, ShouldBeNil)
@@ -278,14 +283,15 @@ func TestGetAllPodsEnvsByServiceId(t *testing.T) {
 
 			_, err := fabricator.GetAllPodsEnvsByServiceId(testCreds, space, serviceId)
 			So(err, ShouldNotBeNil)
-		})
+		})*/
 
 		Convey("Should returns error when no items in respone", func() {
 			mockKubernetesRest.LoadSimpleResponsesWithSameAction()
+			mockKubernetesRest.LoadSimpleResponsesWithSameActionForExtensionsClient()
 
 			_, err := fabricator.GetAllPodsEnvsByServiceId(testCreds, space, serviceId)
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, "No replication controllers associated with the service: "+serviceId)
+			So(err.Error(), ShouldEqual, "No deployments associated with the service: "+serviceId)
 		})
 	})
 }
@@ -384,6 +390,14 @@ func getErrorResponseForSpecificResource(resourceName string) runtime.Object {
 	return &api.List{
 		Items: []runtime.Object{
 			&(k8sErrors.NewForbidden(api.Resource(resourceName), "", nil).(*k8sErrors.StatusError).ErrStatus),
+		},
+	}
+}
+
+func getErrorResponseForSpecificExtensionsResource(resourceName string) runtime.Object {
+	return &api.List{
+		Items: []runtime.Object{
+			&(k8sErrors.NewForbidden(extensions.Resource(resourceName), "", nil).(*k8sErrors.StatusError).ErrStatus),
 		},
 	}
 }

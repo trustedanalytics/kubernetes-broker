@@ -137,7 +137,7 @@ func AddAndRegisterCustomTemplate(template Template) error {
 			return err
 		}
 	}
-	for i, rc := range template.Body.ReplicationControllers {
+	for i, rc := range template.Body.Deployments {
 		err := save_k8s_file_in_dir(templateDir, fmt.Sprintf("replicationcontroller_%d.json", i), rc)
 		if err != nil {
 			return err

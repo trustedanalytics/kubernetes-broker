@@ -1,0 +1,181 @@
+{
+  "kind": "Deployment",
+  "apiVersion": "extensions/v1beta1",
+  "metadata": {
+    "name": "$idx_and_short_serviceid-node1",
+    "labels": {
+      "org": "$org",
+      "space": "$space",
+      "catalog_service_id": "$catalog_service_id",
+      "catalog_plan_id": "$catalog_plan_id",
+      "service_id": "$service_id",
+      "idx_and_short_serviceid": "$idx_and_short_serviceid-node1",
+      "managed_by": "TAP"
+    }
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "matchLabels" : {
+        "service_id": "$service_id",
+        "idx_and_short_serviceid": "$idx_and_short_serviceid-node1"
+      }
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "service_id": "$service_id",
+          "idx_and_short_serviceid": "$idx_and_short_serviceid-node1",
+          "managed_by": "TAP"
+        }
+      },
+      "spec": {
+        "imagePullSecrets": [
+          {
+            "name": "private-tap-repo-secret"
+          }
+        ],
+        "serviceAccountName": "$idx_and_short_serviceid-node1",
+        "volumes": [
+          {
+            "name": "mysql-credentials",
+            "secret": {
+              "secretName": "$short_serviceid-mysql-clustered-credentials"
+            }
+          }
+        ],
+        "containers": [
+          {
+            "name": "k-mysql56",
+            "image": "quay.io/trustedanalytics/mysql56-cluster",
+            "ports": [
+              {
+                "containerPort": 3306,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 4444,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 4567,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 4568,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              { "name": "MANAGED_BY", "value":"TAP" },
+              {
+                "name": "MYSQL_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mysql-clustered-credentials",
+                    "key": "mysql-password"
+                  }
+                }
+              },
+              {
+                "name": "MYSQL_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mysql-clustered-credentials",
+                    "key": "mysql-user"
+                  }
+                }
+              },
+              {
+                "name": "MYSQL_DATABASE",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mysql-clustered-credentials",
+                    "key": "mysql-database"
+                  }
+                }
+              },
+              {
+                "name": "WSREP_SST_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mysql-clustered-credentials",
+                    "key": "wsrep-sst-user"
+                  }
+                }
+              },
+              {
+                "name": "WSREP_SST_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mysql-clustered-credentials",
+                    "key": "wsrep-sst-password"
+                  }
+                }
+              },
+              {
+                "name": "MYSQL_ROOT_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mysql-clustered-credentials",
+                    "key": "mysql-root-password"
+                  }
+                }
+              },
+              { "name": "GALERA_CLUSTER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mysql-clustered-credentials",
+                    "key": "galera-cluster"
+                  }
+                }
+              },
+              { "name": "WSREP_CLUSTER_ADDRESS",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mysql-clustered-credentials",
+                    "key": "wsrep-cluster-address"
+                  }
+                }
+              },
+              { "name": "SERVICE_LABEL",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mysql-clustered-credentials",
+                    "key": "service-label"
+                  }
+                }
+              },
+              { "name": "USE_IP",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mysql-clustered-credentials",
+                    "key": "use-ip"
+                  }
+                }
+              },
+              { "name": "MASTER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-mysql-clustered-credentials",
+                    "key": "master"
+                  }
+                }
+              }
+            ],
+            "volumeMounts": [
+              {
+                "name": "mysql-credentials",
+                "readOnly": true,
+                "mountPath": "/etc/mysql-credentials"
+              }
+            ],
+            "imagePullPolicy": "IfNotPresent"
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
+      }
+    }
+  }
+}

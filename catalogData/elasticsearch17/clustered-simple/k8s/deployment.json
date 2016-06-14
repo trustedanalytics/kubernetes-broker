@@ -1,0 +1,151 @@
+{
+  "kind": "Deployment",
+  "apiVersion": "extensions/v1beta1",
+  "metadata": {
+    "name": "$idx_and_short_serviceid",
+    "labels": {
+      "org": "$org",
+      "space": "$space",
+      "catalog_service_id": "$catalog_service_id",
+      "catalog_plan_id": "$catalog_plan_id",
+      "service_id": "$service_id",
+      "idx_and_short_serviceid": "$idx_and_short_serviceid",
+      "managed_by": "TAP"
+    }
+  },
+  "spec": {
+    "replicas": 3,
+    "selector": {
+      "matchLabels" : {
+        "service_id": "$service_id",
+        "idx_and_short_serviceid": "$idx_and_short_serviceid"
+      }
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "service_id": "$service_id",
+          "idx_and_short_serviceid": "$idx_and_short_serviceid",
+          "managed_by": "TAP"
+        }
+      },
+      "spec": {
+        "volumes": null,
+        "containers": [
+          {
+            "name": "k-elasticsearch17-clustered",
+            "image": "quay.io/pires/docker-elasticsearch-kubernetes:1.7.1-4",
+            "resources": {
+              "limits": {
+                "memory": "500M"
+              },
+              "requests": {
+                "memory": "100M"
+              }
+            },
+            "livenessProbe": {
+              "exec": {
+                "command": [ "/bin/sh", "-c", "/usr/bin/wget http://localhost:9200/_cluster/health?pretty -q -O - | /bin/grep cluster_name" ]
+              },
+              "initialDelaySeconds": 60,
+              "timeoutSeconds": 15,
+              "periodSeconds": 60,
+              "successThreshold": 1,
+              "failureThreshold": 4
+
+            },
+            "ports": [
+              {
+                "containerPort": 9200,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 9300,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              {
+                "name": "KUBERNETES_CA_CERTIFICATE_FILE",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-es-secret-keyfile",
+                    "key": "kubernetes-ca-certificate-file"
+                  }
+                }
+              },
+              {
+                "name": "DISCOVERY_SERVICE",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-es-secret-keyfile",
+                    "key": "discovery-service"
+                  }
+                }
+              },
+              {
+                "name": "NODE_MASTER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-es-secret-keyfile",
+                    "key": "node-master"
+                  }
+                }
+              },
+              {
+                "name": "NODE_DATA",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-es-secret-keyfile",
+                    "key": "node-data"
+                  }
+                }
+              },
+              {
+                "name": "CLUSTER_NAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-es-secret-keyfile",
+                    "key": "cluster-name"
+                  }
+                }
+              },
+              {
+                "name": "USERNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-es-secret-keyfile",
+                    "key": "username"
+                  }
+                }
+              },
+              {
+                "name": "PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-es-secret-keyfile",
+                    "key": "password"
+                  }
+                }
+              },
+              {
+                "name": "DBNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-es-secret-keyfile",
+                    "key": "dbname"
+                  }
+                }
+              },
+              { "name": "NAMESPACE", "valueFrom": { "fieldRef": { "apiVersion": "v1", "fieldPath": "metadata.namespace" } } },
+              { "name": "MANAGED_BY", "value":"TAP" }
+            ],
+            "imagePullPolicy": "IfNotPresent"
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
+      }
+    }
+  }
+}

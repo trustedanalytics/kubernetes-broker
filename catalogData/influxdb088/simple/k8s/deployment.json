@@ -1,0 +1,79 @@
+{
+  "kind": "Deployment",
+  "apiVersion": "extensions/v1beta1",
+  "metadata": {
+    "name": "$idx_and_short_serviceid",
+    "labels": {
+      "org": "$org",
+      "space": "$space",
+      "catalog_service_id": "$catalog_service_id",
+      "catalog_plan_id": "$catalog_plan_id",
+      "service_id": "$service_id",
+      "idx_and_short_serviceid": "$idx_and_short_serviceid",
+      "managed_by": "TAP"
+    }
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "matchLabels" : {
+        "service_id": "$service_id",
+        "idx_and_short_serviceid": "$idx_and_short_serviceid"
+      }
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "service_id": "$service_id",
+          "idx_and_short_serviceid": "$idx_and_short_serviceid",
+          "managed_by": "TAP"
+        }
+      },
+      "spec": {
+        "volumes": null,
+        "containers": [
+          {
+            "name": "k-influxdb088",
+            "image": "tutum/influxdb",
+            "ports": [
+              {
+                "containerPort": 8083,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 8084,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 8086,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              { "name": "INFLUXDB_USERNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-influxdb-credentials",
+                    "key": "influxdb-username"
+                  }
+                }
+              },
+              { "name": "INFLUXDB_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-influxdb-credentials",
+                    "key": "influxdb-password"
+                  }
+                }
+              },
+              { "name": "MANAGED_BY", "value":"TAP" }
+            ],
+            "imagePullPolicy": "IfNotPresent"
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
+      }
+    }
+  }
+}

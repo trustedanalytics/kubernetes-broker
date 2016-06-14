@@ -154,6 +154,10 @@ func (k *KubernetesTestCreator) LoadSimpleResponsesWithSameAction(responeObjects
 	k.testClient = testclient.NewSimpleFake(responeObjects...)
 }
 
+func (k *KubernetesTestCreator) LoadSimpleResponsesWithSameActionForExtensionsClient(responeObjects ...runtime.Object) {
+	k.testExtensionClient = testclient.NewSimpleFakeExp(responeObjects...)
+}
+
 type KubernetesTestAdvancedParams struct {
 	Verb            string
 	Resource        string

@@ -1,0 +1,176 @@
+{
+  "kind": "Deployment",
+  "apiVersion": "extensions/v1beta1",
+  "metadata": {
+    "name": "$idx_and_short_serviceid-slave-1",
+    "labels": {
+      "org": "$org",
+      "space": "$space",
+      "catalog_service_id": "$catalog_service_id",
+      "catalog_plan_id": "$catalog_plan_id",
+      "service_id": "$service_id",
+      "idx_and_short_serviceid": "$idx_and_short_serviceid-slave-1",
+      "managed_by": "TAP"
+    }
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "matchLabels" : {
+        "service_id": "$service_id",
+        "idx_and_short_serviceid": "$idx_and_short_serviceid-slave-1"
+      }
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "service_id": "$service_id",
+          "idx_and_short_serviceid": "$idx_and_short_serviceid-slave-1",
+          "managed_by": "TAP"
+        }
+      },
+      "spec": {
+        "volumes": [
+          {
+            "name": "postgresql-credentials",
+            "secret": {
+              "secretName": "$short_serviceid-postgresql-clustered-credentials"
+            }
+          },
+          {
+            "name": "postgresql-persistent-storage",
+            "persistentVolumeClaim": {
+              "claimName": "$idx_and_short_serviceid-slave-1"
+            }
+          }
+        ],
+        "serviceAccountName": "$idx_and_short_serviceid-slave-1",
+        "containers": [
+          {
+            "name": "k-postgresql94",
+            "image": "sameersbn/postgresql:9.4-20",
+            "command": ["/bin/bash"],
+            "args": ["-c", "export MASTER_HOST_NAME=${MASTER_HOST_NAME^^} && export REPLICATION_HOST=${!MASTER_HOST_NAME} && export PGPASSWORD=${REPLICATION_PASS} && while true ; do  ERR=`psql -h ${REPLICATION_HOST} -U ${REPLICATION_USER} -c 'SELECT 1' -d postgres  2>&1 >/dev/null` ; [[ ${ERR} != '' ]] || break ; echo 'Waiting for master ...' && sleep 5; done && /sbin/entrypoint.sh "],
+            "ports": [
+              {
+                "containerPort": 5432,
+                "protocol": "TCP"
+              }
+            ],
+            "volumeMounts": [
+              {
+                "name": "postgresql-persistent-storage",
+                "mountPath": "/var/lib/postgresql/"
+              }
+            ],
+            "env": [
+              {
+                "name": "REPLICATION_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "replication-user"
+                  }
+                }
+              },
+              {
+                "name": "REPLICATION_PASS",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "replication-pass"
+                  }
+                }
+              },
+              {
+                "name": "DB_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "db-user"
+                  }
+                }
+              },
+              {
+                "name": "DB_PASS",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "db-pass"
+                  }
+                }
+              },
+              {
+                "name": "DB_NAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "db-name"
+                  }
+                }
+              },
+              {
+                "name": "PG_TRUST_LOCALNET",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "pg-trust-localnet"
+                  }
+                }
+              },
+              {
+                "name": "REPLICATION_MODE",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "replication-mode"
+                  }
+                }
+              },
+              {
+                "name": "REPLICATION_SSLMODE",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "replication-sslmode"
+                  }
+                }
+              },
+              {
+                "name": "MASTER_HOST_NAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "master-host-name"
+                  }
+                }
+              },
+              {
+                "name": "REPLICATION_HOST",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "replication-host"
+                  }
+                }
+              },
+              {
+                "name": "REPLICATION_PORT",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-postgresql-clustered-credentials",
+                    "key": "replication-port"
+                  }
+                }
+              },
+              { "name": "MANAGED_BY", "value":"TAP" }
+            ],
+            "imagePullPolicy": "IfNotPresent"
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
+      }
+    }
+  }
+}

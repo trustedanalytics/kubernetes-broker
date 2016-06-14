@@ -21,6 +21,7 @@ import (
 
 	"github.com/nu7hatch/gouuid"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 )
 
 type DynamicService struct {
@@ -135,11 +136,11 @@ func getDynamicServiceMetadata(dynamicService DynamicService, plan PlanMetadata)
 
 func getParsedKubernetesBlueprint(componentTemplate KubernetesComponent, blueprintTemplate KubernetesBlueprint, dynamicService DynamicService) (KubernetesBlueprint, error) {
 	result := KubernetesBlueprint{}
-	rcJson, err := getParsedReplicationControllerJson(*componentTemplate.ReplicationControllers[0], dynamicService.Containers)
+	deploymentJson, err := getParsedDeploymentJson(*componentTemplate.Deployments[0], dynamicService.Containers)
 	if err != nil {
 		return result, err
 	}
-	result.ReplicationControllerJson = append(result.ReplicationControllerJson, rcJson)
+	result.DeploymentJson = append(result.DeploymentJson, deploymentJson)
 
 	serviceJson, err := getParsedServiceJson(*componentTemplate.Services[0], dynamicService.ServicePorts)
 	if err != nil {
@@ -159,11 +160,11 @@ func getParsedKubernetesBlueprint(componentTemplate KubernetesComponent, bluepri
 	return result, nil
 }
 
-func getParsedReplicationControllerJson(template api.ReplicationController, conteinersToParse []api.Container) (string, error) {
+func getParsedDeploymentJson(template extensions.Deployment, conteinersToParse []api.Container) (string, error) {
 	template.Spec.Template.Spec.Containers = getParsedContainers(template.Spec.Template.Spec.Containers[0], conteinersToParse)
 	jsonRc, err := json.Marshal(template)
 	if err != nil {
-		logger.Error("[getParsedReplicationControllerJson] Marshaling replication controller error!", err)
+		logger.Error("Marshaling deployment error!", err)
 		return "", err
 	}
 	return string(jsonRc), nil

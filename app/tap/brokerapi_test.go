@@ -33,6 +33,7 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 
 	"github.com/trustedanalytics/kubernetes-broker/catalog"
 	"github.com/trustedanalytics/kubernetes-broker/consul"
@@ -313,7 +314,7 @@ func TestServiceInstancesDelete(t *testing.T) {
 				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
 				mockKubernetesApi.EXPECT().DeleteAllByServiceId(testCreds, testId).Return(nil),
 				mockKubernetesApi.EXPECT().GetServices(testCreds, tst.TestOrgGuid).Return(nil, nil),
-				mockKubernetesApi.EXPECT().ListReplicationControllers(testCreds).Return(&api.ReplicationControllerList{}, nil),
+				mockKubernetesApi.EXPECT().ListDeployments(testCreds).Return(&extensions.DeploymentList{}, nil),
 				mockKubernetesApi.EXPECT().DeleteAllPersistentVolumeClaims(testCreds).Return(nil),
 				mockKubernetesApi.EXPECT().GetAllPersistentVolumes(testCreds).Return(nil, nil),
 				mockCreatorConnector.EXPECT().DeleteCluster(tst.TestOrgGuid).Return(nil),
@@ -330,13 +331,13 @@ func TestServiceInstancesDelete(t *testing.T) {
 				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
 				mockKubernetesApi.EXPECT().DeleteAllByServiceId(testCreds, testId).Return(nil),
 				mockKubernetesApi.EXPECT().GetServices(testCreds, tst.TestOrgGuid).Return(nil, nil),
-				mockKubernetesApi.EXPECT().ListReplicationControllers(testCreds).Return(&api.ReplicationControllerList{}, nil),
+				mockKubernetesApi.EXPECT().ListDeployments(testCreds).Return(&extensions.DeploymentList{}, nil),
 				mockKubernetesApi.EXPECT().DeleteAllPersistentVolumeClaims(testCreds).Return(nil),
 				// return one PV to fore waitingon EBS action
 				mockKubernetesApi.EXPECT().GetAllPersistentVolumes(testCreds).Return([]api.PersistentVolume{{}}, nil),
 
 				mockKubernetesApi.EXPECT().GetServices(testCreds, tst.TestOrgGuid).Return(nil, nil),
-				mockKubernetesApi.EXPECT().ListReplicationControllers(testCreds).Return(&api.ReplicationControllerList{}, nil),
+				mockKubernetesApi.EXPECT().ListDeployments(testCreds).Return(&extensions.DeploymentList{}, nil),
 				mockKubernetesApi.EXPECT().DeleteAllPersistentVolumeClaims(testCreds).Return(nil),
 				mockKubernetesApi.EXPECT().GetAllPersistentVolumes(testCreds).Return(nil, nil),
 				mockCreatorConnector.EXPECT().DeleteCluster(tst.TestOrgGuid).Return(nil),
@@ -353,7 +354,7 @@ func TestServiceInstancesDelete(t *testing.T) {
 				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
 				mockKubernetesApi.EXPECT().DeleteAllByServiceId(testCreds, testId).Return(nil),
 				mockKubernetesApi.EXPECT().GetServices(testCreds, tst.TestOrgGuid).Return([]api.Service{api.Service{}}, nil),
-				mockKubernetesApi.EXPECT().ListReplicationControllers(testCreds).Return(&api.ReplicationControllerList{}, nil),
+				mockKubernetesApi.EXPECT().ListDeployments(testCreds).Return(&extensions.DeploymentList{}, nil),
 			)
 
 			rr := sendRequest("DELETE", URLserviceInstancePath+testId, nil, r)

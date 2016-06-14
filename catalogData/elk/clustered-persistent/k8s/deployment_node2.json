@@ -1,0 +1,222 @@
+{
+  "kind": "Deployment",
+  "apiVersion": "extensions/v1beta1",
+  "metadata": {
+    "name": "$idx_and_short_serviceid-node2",
+    "labels": {
+      "org": "$org",
+      "space": "$space",
+      "catalog_service_id": "$catalog_service_id",
+      "catalog_plan_id": "$catalog_plan_id",
+      "service_id": "$service_id",
+      "idx_and_short_serviceid": "$idx_and_short_serviceid-node2",
+      "managed_by": "TAP",
+      "instance": "node2"
+    }
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "matchLabels" : {
+        "service_id": "$service_id",
+        "idx_and_short_serviceid": "$idx_and_short_serviceid-node2"
+      }
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "service_id": "$service_id",
+          "idx_and_short_serviceid": "$idx_and_short_serviceid-node2",
+          "managed_by": "TAP",
+          "instance": "node2"
+        }
+      },
+      "spec": {
+        "serviceAccountName": "$short_serviceid",
+        "volumes": [
+          {
+            "name": "elk-secret-volume",
+            "secret": {
+              "secretName": "$short_serviceid-elk-secret-keyfile"
+            }
+          },
+          {
+            "name": "elk-node2-persistent-storage",
+            "persistentVolumeClaim": {
+              "claimName": "$idx_and_short_serviceid-node2"
+            }
+          }
+        ],
+        "containers": [
+          {
+            "name": "elk-node2-clustered",
+            "image": "quay.io/pires/docker-elasticsearch-kubernetes:1.7.1-4",
+            "resources": {
+              "limits": {
+                "memory": "500M"
+              },
+              "requests": {
+                "memory": "100M"
+              }
+            },
+            "livenessProbe": {
+              "exec": {
+                "command": [ "/bin/sh", "-c", "/usr/bin/wget http://localhost:9200/_cluster/health?pretty -q -O - | /bin/grep cluster_name" ]
+              },
+              "initialDelaySeconds": 60,
+              "timeoutSeconds": 15,
+              "periodSeconds": 60,
+              "successThreshold": 1,
+              "failureThreshold": 4
+
+            },
+            "ports": [
+              {
+                "containerPort": 9200,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 9300,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              { "name": "KUBERNETES_CA_CERTIFICATE_FILE",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "kubernetes-ca-certificate-file"
+                  }
+                }
+              },
+              { "name": "DISCOVERY_SERVICE",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "discovery-service"
+                  }
+                }
+              },
+              { "name": "NODE_MASTER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "node-master"
+                  }
+                }
+              },
+              { "name": "NODE_DATA",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "node-data"
+                  }
+                }
+              },
+              {
+                "name": "CLUSTER_NAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "cluster-name"
+                  }
+                }
+              },
+              {
+                "name": "USERNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "username"
+                  }
+                }
+              },
+              {
+                "name": "PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "password"
+                  }
+                }
+              },
+              {
+                "name": "DBNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "dbname"
+                  }
+                }
+              },
+              { "name": "MANAGED_BY", "value":"TAP" },
+              { "name": "NAMESPACE", "valueFrom": { "fieldRef": { "apiVersion": "v1", "fieldPath": "metadata.namespace" } } }
+            ],
+            "volumeMounts": [
+              {
+                "name": "elk-secret-volume",
+                "readOnly": false,
+                "mountPath": "/etc/elk-secret-volume"
+              },
+              {
+                "name": "elk-node2-persistent-storage",
+                "mountPath": "/var/lib/elasticsearch"
+              }
+            ],
+            "imagePullPolicy": "IfNotPresent"
+          },
+          {
+            "name": "kibana",
+            "image": "kibana:4.1.4",
+            "livenessProbe": {
+              "exec": {
+                "command": [ "/bin/sh", "-c", "/usr/bin/curl http://localhost:5601/ | /bin/grep window.KIBANA_VERSION" ]
+              },
+              "initialDelaySeconds": 300,
+              "timeoutSeconds": 15,
+              "periodSeconds": 600,
+              "successThreshold": 1,
+              "failureThreshold": 10
+            },
+            "ports": [
+              {
+                "containerPort": 5601,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              { "name": "ELASTICSEARCH_URL",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "elasticsearch-url"
+                  }
+                }
+              },
+              {
+                "name": "DBNAME",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "$short_serviceid-elk-secret-keyfile",
+                    "key": "dbname"
+                  }
+                }
+              },
+              { "name": "MANAGED_BY", "value":"TAP" }
+            ],
+            "volumeMounts": [
+              {
+                "name": "elk-secret-volume",
+                "readOnly": false,
+                "mountPath": "/etc/elk-secret-volume"
+              }
+            ],
+            "imagePullPolicy": "IfNotPresent"
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
+      }
+    }
+  }
+}
