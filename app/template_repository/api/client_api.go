@@ -19,6 +19,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -28,8 +29,7 @@ import (
 )
 
 type TemplateRepository interface {
-	GetCatalog() (catalog.ServicesMetadata, error)
-	GenerateParsedTemplate(request GenerateParsedTemplateRequest) (catalog.Template, error)
+	GenerateParsedTemplate(templateId, uuid string) (catalog.Template, error)
 }
 
 type TemplateRepositoryConnector struct {
@@ -57,33 +57,11 @@ func NewTemplateRepositoryCa(address, username, password, certPemFile, keyPemFil
 	return &TemplateRepositoryConnector{address, username, password, client}, nil
 }
 
-func (t *TemplateRepositoryConnector) GetCatalog() (catalog.ServicesMetadata, error) {
-	url := t.Address + "/catalog"
-	status, body, err := brokerHttp.RestGET(url, &brokerHttp.BasicAuth{t.Username, t.Password}, t.Client)
-
-	services := catalog.ServicesMetadata{}
-	err = json.Unmarshal(body, &services)
-	if err != nil {
-		logger.Error("GetCatalog error:", err)
-		return services, err
-	}
-	if status != http.StatusOK {
-		return services, errors.New("Bad response status: " + strconv.Itoa(status) + ". Body: " + string(body))
-	}
-	return services, nil
-}
-
-func (t *TemplateRepositoryConnector) GenerateParsedTemplate(request GenerateParsedTemplateRequest) (catalog.Template, error) {
+func (t *TemplateRepositoryConnector) GenerateParsedTemplate(templateId, uuid string) (catalog.Template, error) {
 	template := catalog.Template{}
 
-	url := t.Address + "/catalog/parsed"
-	body, err := json.Marshal(request)
-	if err != nil {
-		logger.Error("GenerateParsedTemplate marshall request error:", err)
-		return template, err
-	}
-
-	status, body, err := brokerHttp.RestPOST(url, string(body), &brokerHttp.BasicAuth{t.Username, t.Password}, t.Client)
+	url := fmt.Sprintf("%s/parsed_template/%s?serviceId=%s", t.Address, templateId, uuid)
+	status, body, err := brokerHttp.RestPOST(url, "", &brokerHttp.BasicAuth{t.Username, t.Password}, t.Client)
 	err = json.Unmarshal(body, &template)
 	if err != nil {
 		logger.Error("GenerateParsedTemplate unmarshall response error:", err)

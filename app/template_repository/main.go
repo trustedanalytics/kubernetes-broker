@@ -44,11 +44,20 @@ func main() {
 	r := web.New(api.Context{})
 	r.Middleware(web.LoggerMiddleware)
 	r.Middleware((*api.Context).CheckBrokerConfig)
-	r.Middleware((*api.Context).BasicAuthorizeMiddleware)
 
-	r.Get("/catalog", (*api.Context).Catalog)
-	r.Post("/catalog/parsed", (*api.Context).GenerateParsedTemplate)
-	r.Put("/catalog", (*api.Context).CreateTemplate)
+	basicAuthRouter := r.Subrouter(api.Context{}, "/api/v1")
+	basicAuthRouter.Middleware((*api.Context).BasicAuthorizeMiddleware)
+
+	jwtRouter := r.Subrouter(api.Context{}, "/api/v1")
+	jwtRouter.Middleware((*api.Context).JWTAuthorizeMiddleware)
+
+	basicAuthRouter.Get("/templates", (*api.Context).Templates)
+	basicAuthRouter.Post("/templates", (*api.Context).CreateCustomTemplate)
+
+	basicAuthRouter.Post("/parsed_template/:templateId/", (*api.Context).GenerateParsedTemplate)
+
+	jwtRouter.Get("/template/:templateId", (*api.Context).GetCustomTemplate)
+	jwtRouter.Delete("/template/:templateId", (*api.Context).DeleteCustomTemplate)
 
 	port := os.Getenv("TEMPLATE_REPOSITORY_PORT")
 	logger.Info("Will listen on:", port)

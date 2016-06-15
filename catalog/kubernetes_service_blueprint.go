@@ -101,10 +101,10 @@ func ParseKubernetesComponent(blueprint KubernetesBlueprint, instanceId, svcMeta
 	}
 	blueprint.ServiceAcccountJson = parsedAccountSvcs
 
-	return CreateKubernetesComponentFromBlueprint(blueprint)
+	return CreateKubernetesComponentFromBlueprint(blueprint, false)
 }
 
-func CreateKubernetesComponentFromBlueprint(blueprint KubernetesBlueprint) (*KubernetesComponent, error) {
+func CreateKubernetesComponentFromBlueprint(blueprint KubernetesBlueprint, encodeSecrets bool) (*KubernetesComponent, error) {
 	result := &KubernetesComponent{}
 
 	for _, pvc := range blueprint.PersistentVolumeClaim {
@@ -119,6 +119,9 @@ func CreateKubernetesComponentFromBlueprint(blueprint KubernetesBlueprint) (*Kub
 
 	for _, secret := range blueprint.SecretsJson {
 		parsedSecret := &api.Secret{}
+		if encodeSecrets {
+			secret = encodeByte64ToString(secret)
+		}
 		err := json.Unmarshal([]byte(secret), parsedSecret)
 		if err != nil {
 			logger.Error("Unmarshalling secret error:", err)
@@ -277,16 +280,20 @@ func adjust_params(content, org, space, cf_service_id string, svc_meta_id, plan_
 	for i := 0; i < 9; i++ {
 		f = strings.Replace(f, "$random"+strconv.Itoa(i), get_random_string(10), -1)
 	}
+	f = encodeByte64ToString(f)
+	return f
+}
 
+func encodeByte64ToString(content string) string {
 	rp := regexp.MustCompile(`\$base64\-(.*)\"`)
-	fs := rp.FindAllString(f, -1)
+	fs := rp.FindAllString(content, -1)
 	for _, sub := range fs {
 		sub = strings.Replace(sub, "$base64-", "", -1)
 		sub = strings.Replace(sub, "\"", "", -1)
-		f = strings.Replace(f, "$base64-"+sub, base64.StdEncoding.EncodeToString([]byte(sub)), -1)
+		content = strings.Replace(content, "$base64-"+sub, base64.StdEncoding.EncodeToString([]byte(sub)), -1)
 	}
 
-	return f
+	return content
 }
 
 /*

@@ -43,41 +43,43 @@ func (c *Context) CheckBrokerConfig(rw web.ResponseWriter, req *web.Request, nex
 	next(rw, req)
 }
 
-func (c *Context) Catalog(rw web.ResponseWriter, req *web.Request) {
-	services := catalog.GetAvailableServicesMetadata()
-	util.WriteJson(rw, services, http.StatusOK)
-}
-
-type GenerateParsedTemplateRequest struct {
-	Uuid       string `json:"uuid"`
-	OrgId      string `json:"orgId"`
-	SpaceId    string `json:"spaceId"`
-	TemplateId string `json:"templateId"`
+func (c *Context) Templates(rw web.ResponseWriter, req *web.Request) {
+	result := []catalog.Template{}
+	templatesMetadata := catalog.GetAvailableTemplates()
+	for _, templateMetadata := range templatesMetadata {
+		template, err := catalog.GetRawTemplate(templateMetadata, catalog.CatalogPath)
+		if err != nil {
+			util.Respond500(rw, err)
+			return
+		}
+		result = append(result, template)
+	}
+	util.WriteJson(rw, result, http.StatusOK)
 }
 
 func (c *Context) GenerateParsedTemplate(rw web.ResponseWriter, req *web.Request) {
-	req_json := GenerateParsedTemplateRequest{}
-
-	err := util.ReadJson(req, &req_json)
-	if err != nil {
-		util.Respond500(rw, err)
+	templateId := req.PathParams["templateId"]
+	uuid := req.URL.Query().Get("serviceId")
+	if templateId == "" || uuid == "" {
+		util.Respond500(rw, errors.New("templateId and uuid can't be empty!"))
 		return
 	}
 
-	templateMetadata := catalog.GetTemplateMetadataById(req_json.TemplateId)
+	templateMetadata := catalog.GetTemplateMetadataById(templateId)
 	if templateMetadata == nil {
-		util.Respond500(rw, errors.New(fmt.Sprintf("Can't find template by id: %s", req_json.TemplateId)))
+		util.Respond500(rw, errors.New(fmt.Sprintf("Can't find template by id: %s", templateId)))
 		return
 	}
-	tempalte, err := catalog.GetParsedTemplate(templateMetadata, catalog.CatalogPath, req_json.Uuid, req_json.OrgId, req_json.SpaceId)
+
+	template, err := catalog.GetParsedTemplate(templateMetadata, catalog.CatalogPath, uuid, "defaultOrg", "defaultSpace")
 	if err != nil {
 		util.Respond500(rw, err)
 		return
 	}
-	util.WriteJson(rw, tempalte, http.StatusOK)
+	util.WriteJson(rw, template, http.StatusOK)
 }
 
-func (c *Context) CreateTemplate(rw web.ResponseWriter, req *web.Request) {
+func (c *Context) CreateCustomTemplate(rw web.ResponseWriter, req *web.Request) {
 	reqTemplate := catalog.Template{}
 
 	err := util.ReadJson(req, &reqTemplate)
@@ -103,6 +105,42 @@ func (c *Context) CreateTemplate(rw web.ResponseWriter, req *web.Request) {
 		return
 	}
 	util.WriteJson(rw, "", http.StatusCreated)
+}
+
+func (c *Context) GetCustomTemplate(rw web.ResponseWriter, req *web.Request) {
+	templateId := req.PathParams["templateId"]
+	if templateId == "" {
+		util.Respond500(rw, errors.New("templateId can not be empty!"))
+		return
+	}
+
+	templateMetadata := catalog.GetTemplateMetadataById(templateId)
+	if templateMetadata == nil {
+		util.Respond500(rw, errors.New("Template not exist!"))
+		return
+	}
+
+	template, err := catalog.GetRawTemplate(templateMetadata, catalog.CatalogPath)
+	if err != nil {
+		util.Respond500(rw, err)
+		return
+	}
+	util.WriteJson(rw, template, http.StatusOK)
+}
+
+func (c *Context) DeleteCustomTemplate(rw web.ResponseWriter, req *web.Request) {
+	templateId := req.PathParams["templateId"]
+	if templateId == "" {
+		util.Respond500(rw, errors.New("templateId can not be empty!"))
+		return
+	}
+
+	err := catalog.RemoveAndUnregisterCustomTemplate(templateId)
+	if err != nil {
+		util.Respond500(rw, err)
+		return
+	}
+	util.WriteJson(rw, "", http.StatusOK)
 }
 
 func (c *Context) Error(rw web.ResponseWriter, r *web.Request, err interface{}) {

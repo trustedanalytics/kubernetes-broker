@@ -22,8 +22,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"k8s.io/kubernetes/pkg/api"
 	k8sErrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/trustedanalytics/kubernetes-broker/catalog"
 	"github.com/trustedanalytics/kubernetes-broker/state"
@@ -231,14 +231,6 @@ func TestDeleteAllByServiceId(t *testing.T) {
 			So(err, ShouldNotBeNil)
 		})
 
-		/*Convey("Should returns error on List Deployments fail", func() {
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction()
-			mockKubernetesRest.LoadSimpleResponsesWithSameActionForExtensionsClient(getErrorResponseForSpecificExtensionsResource("DeploymentList"))
-
-			err := fabricator.DeleteAllByServiceId(testCreds, serviceId)
-			So(err, ShouldNotBeNil)
-		})*/
-
 		Convey("Should returns error on List Secret fail", func() {
 			mockKubernetesRest.LoadSimpleResponsesWithSameAction(getErrorResponseForSpecificResource("SecretList"))
 
@@ -252,39 +244,6 @@ func TestGetAllPodsEnvsByServiceId(t *testing.T) {
 	fabricator, _, mockKubernetesRest := prepareMocksAndRouter(t)
 
 	Convey("Test GetAllPodsEnvsByServiceId", t, func() {
-		/*
-		Convey("Should returns proper response", func() {
-			env_name := "name"
-			env_val := "val"
-
-			deploymentResponse := &extensions.DeploymentList{
-				Items: []extensions.Deployment{
-					{Spec: extensions.DeploymentSpec{
-						Selector: &unversioned.LabelSelector{MatchLabels: map[string]string{serviceIdLabel: serviceId, managedByLabel: "TAP"}},
-						Template: api.PodTemplateSpec{
-							Spec: api.PodSpec{
-								Containers: []api.Container{
-									{Env: []api.EnvVar{{Name: env_name, Value: env_val}}},
-								},
-							}}}},
-				},
-			}
-			mockKubernetesRest.LoadSimpleResponsesWithSameActionForExtensionsClient(deploymentResponse)
-
-			result, err := fabricator.GetAllPodsEnvsByServiceId(testCreds, space, serviceId)
-			So(err, ShouldBeNil)
-			So(result, ShouldNotBeEmpty)
-			So(result, ShouldHaveLength, 1)
-			So(result[0].Containers[0].Envs[env_name], ShouldEqual, env_val)
-		})
-
-		Convey("Should returns error on List ReplicationControllers fail", func() {
-			mockKubernetesRest.LoadSimpleResponsesWithSameAction(getErrorResponseForSpecificResource("ReplicationControllerList"))
-
-			_, err := fabricator.GetAllPodsEnvsByServiceId(testCreds, space, serviceId)
-			So(err, ShouldNotBeNil)
-		})*/
-
 		Convey("Should returns error when no items in respone", func() {
 			mockKubernetesRest.LoadSimpleResponsesWithSameAction()
 			mockKubernetesRest.LoadSimpleResponsesWithSameActionForExtensionsClient()

@@ -9,23 +9,29 @@ paths:
         200:
           description: bb
           schema:
-            type: array
-            items:
-              $ref: '#/definitions/KubernetesComponent'
+            $ref: '#/definitions/Template'
     delete:
       responses:
         200:
           description: bb
   /api/v1/templates:
-    post:
-      parameters:
-        - name: template
-          in: body
-          schema:
-            $ref: '#/definitions/Template'
+    get:
       responses:
         200:
           description: bb
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Template'
+    post:
+          parameters:
+            - name: template
+              in: body
+              schema:
+                $ref: '#/definitions/Template'
+          responses:
+            200:
+              description: bb
   /api/v1/parsed_template/{templateId}:
     get:
       parameters:

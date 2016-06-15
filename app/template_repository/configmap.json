@@ -1,0 +1,21 @@
+{
+  "kind": "ConfigMap",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "template-repository-credentials",
+    "labels": {
+      "id": "template-repository-credentials"
+    }
+  },
+  "data": {
+    "template-repository-port": "8082",
+    "template-repository-user": "admin",
+    "template-repository-pass": "password",
+    "template-repository-ssl-active": "false",
+    "template-repository-ssl-cert-file-location": "",
+    "template-repository-ssl-key-file-location": "",
+    "template-repository-ssl-ca-file-location": "",
+    "insecure-skip-verify": "true",
+    "broker-log-level": "DEBUG"
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "kind": "Deployment",
+  "apiVersion": "extensions/v1beta1",
+  "metadata": {
+    "name": "template-repository"
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "matchLabels" : {
+        "id": "template-repository"
+      }
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "id": "template-repository"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "template-repository",
+            "image": "tap/template_repository",
+            "ports": [
+              {
+                "containerPort": 8082,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              { "name": "TEMPLATE_REPOSITORY_PORT",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "template-repository-credentials",
+                    "key": "template-repository-port"
+                  }
+                }
+              },
+              { "name": "TEMPLATE_REPOSITORY_USER",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "template-repository-credentials",
+                    "key": "template-repository-user"
+                  }
+                }
+              },
+              { "name": "TEMPLATE_REPOSITORY_PASS",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "template-repository-credentials",
+                    "key": "template-repository-pass"
+                  }
+                }
+              },
+              { "name": "TEMPLATE_REPOSITORY_SSL_ACTIVE",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "template-repository-credentials",
+                    "key": "template-repository-ssl-active"
+                  }
+                }
+              },
+              { "name": "TEMPLATE_REPOSITORY_SSL_CERT_FILE_LOCATION",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "template-repository-credentials",
+                    "key": "template-repository-ssl-cert-file-location"
+                  }
+                }
+              },
+              { "name": "TEMPLATE_REPOSITORY_SSL_KEY_FILE_LOCATION",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "template-repository-credentials",
+                    "key": "template-repository-ssl-key-file-location"
+                  }
+                }
+              },
+              { "name": "TEMPLATE_REPOSITORY_SSL_CA_FILE_LOCATION",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "template-repository-credentials",
+                    "key": "template-repository-ssl-ca-file-location"
+                  }
+                }
+              },
+              { "name": "INSECURE_SKIP_VERIFY",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "template-repository-credentials",
+                    "key": "insecure-skip-verify"
+                  }
+                }
+              },
+              { "name": "BROKER_LOG_LEVEL",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "template-repository-credentials",
+                    "key": "broker-log-level"
+                  }
+                }
+              }
+            ],
+            "imagePullPolicy": "IfNotPresent"
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
+      }
+    }
+  }
+}

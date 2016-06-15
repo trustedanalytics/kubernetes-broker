@@ -62,7 +62,7 @@ func CreateDynamicService(dynamicService DynamicService) (KubernetesBlueprint, P
 		return result, plan, service, err
 	}
 
-	componentTemplate, err := CreateKubernetesComponentFromBlueprint(blueprintTemplate)
+	componentTemplate, err := CreateKubernetesComponentFromBlueprint(blueprintTemplate, false)
 	if err != nil {
 		return result, plan, service, err
 	}

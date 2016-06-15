@@ -57,14 +57,14 @@ type ServiceInstanceRequest struct {
 }
 
 func (c *Context) CreateServiceInstance(rw web.ResponseWriter, req *web.Request) {
-	req_json, templateRequest, err := ParseServiceInstanceRequest(req)
+	req_json, err := ParseServiceInstanceRequest(req)
 	if err != nil {
 		util.Respond500(rw, err)
 		return
 	}
 
 	BrokerConfig.StateService.NotifyCatalog(req_json.Uuid, "IN_PROGRESS_STARTED", nil)
-	template, err := BrokerConfig.TemplateRepository.GenerateParsedTemplate(templateRequest)
+	template, err := BrokerConfig.TemplateRepository.GenerateParsedTemplate(req_json.TemplateId, req_json.Uuid)
 	if err != nil {
 		BrokerConfig.StateService.NotifyCatalog(req_json.Uuid, "FAILED", err)
 		util.Respond500(rw, err)
@@ -131,12 +131,12 @@ func (c *Context) Unbind(rw web.ResponseWriter, req *web.Request) {
 }
 
 func getUuidAndCreateJobByType(req *web.Request, jobType catalog.JobType) (string, error) {
-	req_json, templateRequest, err := ParseServiceInstanceRequest(req)
+	req_json, err := ParseServiceInstanceRequest(req)
 	if err != nil {
 		return "", err
 	}
 
-	template, err := BrokerConfig.TemplateRepository.GenerateParsedTemplate(templateRequest)
+	template, err := BrokerConfig.TemplateRepository.GenerateParsedTemplate(req_json.TemplateId, req_json.Uuid)
 	if err != nil {
 		return req_json.Uuid, err
 	}
@@ -146,25 +146,19 @@ func getUuidAndCreateJobByType(req *web.Request, jobType catalog.JobType) (strin
 	return req_json.Uuid, err
 }
 
-func ParseServiceInstanceRequest(req *web.Request) (ServiceInstanceRequest, api.GenerateParsedTemplateRequest, error) {
+func ParseServiceInstanceRequest(req *web.Request) (ServiceInstanceRequest, error) {
 	req_json := ServiceInstanceRequest{}
 	err := util.ReadJson(req, &req_json)
-	templateRequest := api.GenerateParsedTemplateRequest{
-		Uuid:       req_json.Uuid,
-		TemplateId: req_json.TemplateId,
-		OrgId:      req_json.OrgId,
-		SpaceId:    req_json.SpaceId,
-	}
 	if err != nil {
-		return req_json, templateRequest, err
+		return req_json, err
 	}
 	if req_json.Uuid == "" {
-		return req_json, templateRequest, errors.New("UUID can not be empty!")
+		return req_json, errors.New("UUID can not be empty!")
 	}
 	if req_json.TemplateId == "" {
-		return req_json, templateRequest, errors.New("TeplateId can not be empty!")
+		return req_json, errors.New("TemplateId can not be empty!")
 	}
-	return req_json, templateRequest, err
+	return req_json, err
 }
 
 func (c *Context) Error(rw web.ResponseWriter, r *web.Request, err interface{}) {

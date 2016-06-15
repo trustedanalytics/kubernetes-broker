@@ -1,0 +1,169 @@
+{
+  "kind": "Deployment",
+  "apiVersion": "extensions/v1beta1",
+  "metadata": {
+    "name": "container-broker"
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "matchLabels" : {
+        "id": "container-broker"
+      }
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "id": "container-broker"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "container-broker",
+            "image": "tap/container_broker",
+            "ports": [
+              {
+                "containerPort": 8081,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              { "name": "CONTAINER_BROKER_PORT",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "container-broker-credentials",
+                    "key": "container-broker-port"
+                  }
+                }
+              },
+              { "name": "CONTAINER_BROKER_USER",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "container-broker-credentials",
+                    "key": "container-broker-user"
+                  }
+                }
+              },
+              { "name": "CONTAINER_BROKER_PASS",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "container-broker-credentials",
+                    "key": "container-broker-pass"
+                  }
+                }
+              },
+              { "name": "CONTAINER_BROKER_SSL_ACTIVE",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "container-broker-credentials",
+                    "key": "container-broker-ssl-active"
+                  }
+                }
+              },
+              { "name": "CONTAINER_BROKER_SSL_CERT_FILE_LOCATION",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "container-broker-credentials",
+                    "key": "container-broker-ssl-cert-file-location"
+                  }
+                }
+              },
+              { "name": "CONTAINER_BROKER_SSL_KEY_FILE_LOCATION",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "container-broker-credentials",
+                    "key": "container-broker-ssl-key-file-location"
+                  }
+                }
+              },
+              { "name": "TEMPLATE_REPOSITORY_KUBERNETES_SERVICE_NAME",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "container-broker-credentials",
+                    "key": "template-repository-kubernetes-service-name"
+                  }
+                }
+              },
+              { "name": "TEMPLATE_REPOSITORY_USER",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "container-broker-credentials",
+                    "key": "template-repository-user"
+                  }
+                }
+              },
+              { "name": "TEMPLATE_REPOSITORY_PASS",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "container-broker-credentials",
+                    "key": "template-repository-pass"
+                  }
+                }
+              },
+              { "name": "TEMPLATE_REPOSITORY_SSL_ACTIVE",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "container-broker-credentials",
+                    "key": "template-repository-ssl-active"
+                  }
+                }
+              },
+              { "name": "TEMPLATE_REPOSITORY_SSL_CERT_FILE_LOCATION",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "container-broker-credentials",
+                    "key": "template-repository-ssl-cert-file-location"
+                  }
+                }
+              },
+              { "name": "TEMPLATE_REPOSITORY_SSL_KEY_FILE_LOCATION",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "container-broker-credentials",
+                    "key": "template-repository-ssl-key-file-location"
+                  }
+                }
+              },
+              { "name": "TEMPLATE_REPOSITORY_SSL_CA_FILE_LOCATION",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "container-broker-credentials",
+                    "key": "template-repository-ssl-ca-file-location"
+                  }
+                }
+              },
+              { "name": "INSECURE_SKIP_VERIFY",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "container-broker-credentials",
+                    "key": "insecure-skip-verify"
+                  }
+                }
+              },
+              { "name": "BROKER_LOG_LEVEL",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "container-broker-credentials",
+                    "key": "broker-log-level"
+                  }
+                }
+              },
+              { "name": "CHECK_JOB_INTERVAL_SEC",
+                "valueFrom": {
+                  "configMapKeyRef": {
+                    "name": "container-broker-credentials",
+                    "key": "check-job-interval-sec"
+                  }
+                }
+              }
+            ],
+            "imagePullPolicy": "IfNotPresent"
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
+      }
+    }
+  }
+}

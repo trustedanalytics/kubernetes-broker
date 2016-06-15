@@ -1,10 +1,10 @@
 {
   "Id": "test1",
   "body": {
-    "replicationControllers": [
+    "deployments": [
       {
-        "kind": "ReplicationController",
-        "apiVersion": "v1",
+        "kind": "Deployment",
+        "apiVersion": "extensions/v1beta1",
         "metadata": {
           "name": "$idx_and_short_serviceid",
           "labels": {
@@ -15,8 +15,10 @@
         "spec": {
           "replicas": 1,
           "selector": {
-            "service_id": "$service_id",
-            "managed_by": "TAP"
+            "matchLabels" : {
+              "service_id": "$service_id",
+              "managed_by": "TAP"
+            }
           },
           "template": {
             "metadata": {

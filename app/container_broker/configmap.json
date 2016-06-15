@@ -1,0 +1,28 @@
+{
+  "kind": "ConfigMap",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "container-broker-credentials",
+    "labels": {
+      "id": "container-broker-credentials"
+    }
+  },
+  "data": {
+    "container-broker-port": "8081",
+    "container-broker-user": "admin",
+    "container-broker-pass": "password",
+    "container-broker-ssl-active": "false",
+    "container-broker-ssl-cert-file-location": "",
+    "container-broker-ssl-key-file-location": "",
+    "template-repository-kubernetes-service-name": "TEMPLATE_REPOSITORY",
+    "template-repository-user": "admin",
+    "template-repository-pass": "password",
+    "template-repository-ssl-active": "false",
+    "template-repository-ssl-cert-file-location": "",
+    "template-repository-ssl-key-file-location": "",
+    "template-repository-ssl-ca-file-location": "",
+    "insecure-skip-verify": "true",
+    "broker-log-level": "DEBUG",
+    "check-job-interval-sec": "10"
+  }
+}

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"sync"
 
 	"k8s.io/kubernetes/pkg/apis/extensions"
 )
@@ -39,7 +38,6 @@ type JobHook struct {
 var TEMPLATES map[string]*TemplateMetadata
 var TemplatesPath string = "./catalogData/"
 var CustomTemplatesDir string = TemplatesPath + "custom/"
-var template_mutex sync.RWMutex
 
 func GetTemplateMetadataById(id string) *TemplateMetadata {
 	if TEMPLATES != nil {
@@ -138,7 +136,7 @@ func AddAndRegisterCustomTemplate(template Template) error {
 		}
 	}
 	for i, rc := range template.Body.Deployments {
-		err := save_k8s_file_in_dir(templateDir, fmt.Sprintf("replicationcontroller_%d.json", i), rc)
+		err := save_k8s_file_in_dir(templateDir, fmt.Sprintf("deployment_%d.json", i), rc)
 		if err != nil {
 			return err
 		}
@@ -178,6 +176,17 @@ func AddAndRegisterCustomTemplate(template Template) error {
 	return nil
 }
 
+func RemoveAndUnregisterCustomTemplate(templateId string) error {
+	templateDir := CustomTemplatesDir + templateId
+	err := os.RemoveAll(templateDir)
+	if err != nil {
+		return err
+	}
+
+	LoadAvailableTemplates()
+	return nil
+}
+
 func GetParsedTemplate(templateMetadata *TemplateMetadata, catalogPath, instanceId, orgId, spaceId string) (Template, error) {
 	result := Template{Id: templateMetadata.Id}
 	component, err := GetParsedKubernetesComponentByTemplate(catalogPath, instanceId, orgId, spaceId, templateMetadata)
@@ -200,14 +209,44 @@ func GetParsedTemplate(templateMetadata *TemplateMetadata, catalogPath, instance
 	return result, nil
 }
 
+func GetRawTemplate(templateMetadata *TemplateMetadata, catalogPath string) (Template, error) {
+	result := Template{Id: templateMetadata.Id}
+	blueprint, err := GetKubernetesBlueprint(catalogPath, templateMetadata.TemplateDirName, templateMetadata.TemplatePlanDirName, templateMetadata.Id)
+	if err != nil {
+		return result, err
+	}
+
+	component, err := CreateKubernetesComponentFromBlueprint(blueprint, true)
+	if err != nil {
+		return result, err
+	}
+
+	jobsHooksRaw, err := GetJobHooks(catalogPath, templateMetadata)
+	if err != nil {
+		return result, err
+	}
+
+	jobHooks, err := unmarshallJobs(jobsHooksRaw)
+	if err != nil {
+		return result, err
+	}
+
+	result.Body = *component
+	result.Hooks = jobHooks
+	return result, nil
+}
+
 func GetParsedJobHooks(jobs []string, instanceId, svcMetaId, planMetaId, org, space string) ([]*JobHook, error) {
-	result := []*JobHook{}
 	parsedJobs := []string{}
 	for i, job := range jobs {
 		parsedJobs = append(parsedJobs, adjust_params(job, org, space, instanceId, svcMetaId, planMetaId, i))
 	}
+	return unmarshallJobs(parsedJobs)
+}
 
-	for _, job := range parsedJobs {
+func unmarshallJobs(jobs []string) ([]*JobHook, error) {
+	result := []*JobHook{}
+	for _, job := range jobs {
 		jobHook := &JobHook{}
 		err := json.Unmarshal([]byte(job), jobHook)
 		if err != nil {
