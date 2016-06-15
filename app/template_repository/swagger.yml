@@ -1,0 +1,1856 @@
+swagger: '2.0'
+info:
+  version: "0.0.0"
+  title: template repository
+paths:
+  /api/v1/templates/{templateId}:
+    get:
+      responses:
+        200:
+          description: bb
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/KubernetesComponent'
+    delete:
+      responses:
+        200:
+          description: bb
+  /api/v1/templates:
+    post:
+      parameters:
+        - name: template
+          in: body
+          schema:
+            $ref: '#/definitions/Template'
+      responses:
+        200:
+          description: bb
+  /api/v1/parsed_template/{templateId}:
+    get:
+      parameters:
+        - name: templateId
+          in: path
+          description: Template uuid
+          required: true
+          type: string
+        - name: serviceId
+          in: query
+          description: Service uuid
+          required: true
+          type: string
+      responses:
+        200:
+          description: aa
+          schema:
+            $ref: '#/definitions/Template'
+definitions:
+  Template:
+    type: object
+    properties:
+      id:
+        type: string
+      body:
+         $ref: '#/definitions/KubernetesComponent'
+      hooks:
+        $ref: '#/definitions/v1beta1.JobList'
+  Jobhook:
+    type: object
+    properties:
+      Type:
+        type: string
+      Job:
+        type: string
+        description: Kubernetes 1.2 Json
+  KubernetesComponent:
+    type: object
+    properties:
+      PersistentVolumeClaims:
+        $ref: '#/definitions/v1.PersistentVolumeClaimList'
+      ReplicationControllers:
+        $ref: '#/definitions/v1.ReplicationControllerList'
+      Services:
+        $ref: '#/definitions/v1.ServiceList'
+      ServiceAccounts:
+        $ref: '#/definitions/v1.ServiceAccountList'
+      Secrets:
+        $ref: '#/definitions/v1.SecretList'
+  v1.Binding:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/v1.ObjectMeta"
+      target:
+        $ref: "#/definitions/v1.ObjectReference"
+  v1.ObjectMeta:
+    type: object
+    properties:
+      name:
+        type: "string"
+      generateName:
+        type: "string"
+      namespace:
+        type: "string"
+      selfLink:
+        type: "string"
+      uid:
+        type: "string"
+      resourceVersion:
+        type: "string"
+      generation:
+        type: "integer"
+        format: "int64"
+      creationTimestamp:
+        type: "string"
+      deletionTimestamp:
+        type: "string"
+      deletionGracePeriodSeconds:
+        type: "integer"
+        format: "int64"
+      labels:
+        type: "object"
+      annotations:
+        type: "object"
+      ownerReferences:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.OwnerReference"
+      finalizers:
+        type: "array"
+        items:
+          type: "string"
+  v1.OwnerReference:
+    type: object
+    properties:
+    apiVersion:
+      type: "string"
+    kind:
+      type: "string"
+    name:
+      type: "string"
+    uid:
+      type: "string"
+    controller:
+      type: "boolean"
+  v1.ObjectReference:
+    type: object
+    properties:
+    kind:
+      type: "string"
+    namespace:
+      type: "string"
+    name:
+      type: "string"
+    uid:
+      type: "string"
+    apiVersion:
+      type: "string"
+    resourceVersion:
+      type: "string"
+    fieldPath:
+      type: "string"
+  v1.ComponentStatusList:
+    type: object
+    properties:
+    kind:
+      type: "string"
+    apiVersion:
+      type: "string"
+    metadata:
+      $ref: "#/definitions/unversioned.ListMeta"
+    items:
+      type: "array"
+      items:
+        $ref: "#/definitions/v1.ComponentStatus"
+  unversioned.ListMeta:
+    type: object
+    properties:
+    selfLink:
+      type: "string"
+    resourceVersion:
+      type: "string"
+  v1.ComponentStatus:
+    type: object
+    properties:
+    kind:
+      type: "string"
+    apiVersion:
+      type: "string"
+    metadata:
+      $ref: "#/definitions/v1.ObjectMeta"
+    conditions:
+      type: "array"
+      items:
+        $ref: "#/definitions/v1.ComponentCondition"
+  v1.ComponentCondition:
+    type: object
+    properties:
+      type:
+        type: "string"
+      status:
+        type: "string"
+      message:
+        type: "string"
+      error:
+        type: "string"
+  v1.ConfigMapList:
+    type: object
+    properties:
+    kind:
+      type: "string"
+    apiVersion:
+      type: "string"
+    metadata:
+      $ref: "#/definitions/unversioned.ListMeta"
+    items:
+      type: "array"
+      items:
+        $ref: "#/definitions/v1.ConfigMap"
+  v1.ConfigMap:
+    type: object
+    properties:
+    kind:
+      type: "string"
+    apiVersion:
+      type: "string"
+    metadata:
+      $ref: "#/definitions/v1.ObjectMeta"
+    data:
+      type: "object"
+  unversioned.Status:
+    type: object
+    properties:
+    kind:
+      type: "string"
+    apiVersion:
+      type: "string"
+    metadata:
+      $ref: "#/definitions/unversioned.ListMeta"
+    status:
+      type: "string"
+    message:
+      type: "string"
+    reason:
+      type: "string"
+    details:
+      $ref: "#/definitions/unversioned.StatusDetails"
+    code:
+      type: "integer"
+      format: "int32"
+  unversioned.StatusDetails:
+    type: object
+    properties:
+    name:
+      type: "string"
+    group:
+      type: "string"
+    kind:
+      type: "string"
+    causes:
+      type: "array"
+      items:
+        $ref: "#/definitions/unversioned.StatusCause"
+    retryAfterSeconds:
+      type: "integer"
+      format: "int32"
+  unversioned.StatusCause:
+    type: object
+    properties:
+    reason:
+      type: "string"
+    message:
+      type: "string"
+    field:
+      type: "string"
+  v1.Preconditions:
+    type: object
+    properties:
+    uid:
+      $ref: "#/definitions/types.UID"
+  types.UID:
+    type: string
+  v1.EndpointsList:
+    type: object
+    properties:
+    kind:
+      type: "string"
+    apiVersion:
+      type: "string"
+    metadata:
+      $ref: "#/definitions/unversioned.ListMeta"
+    items:
+      type: "array"
+      items:
+        $ref: "#/definitions/v1.Endpoints"
+  v1.Endpoints:
+    type: object
+    properties:
+    kind:
+      type: "string"
+    apiVersion:
+      type: "string"
+    metadata:
+      $ref: "#/definitions/v1.ObjectMeta"
+    subsets:
+      type: "array"
+      items:
+        $ref: "#/definitions/v1.EndpointSubset"
+  v1.EndpointSubset:
+    type: object
+    properties:
+      addresses:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.EndpointAddress"
+      notReadyAddresses:
+        type: "array"
+        items:
+         $ref: "#/definitions/v1.EndpointAddress"
+      ports:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.EndpointPort"
+  v1.EndpointAddress:
+    type: object
+    properties:
+      ip:
+        type: "string"
+      hostname:
+        type: "string"
+      targetRef:
+        $ref: "#/definitions/v1.ObjectReference"
+  v1.EndpointPort:
+    type: object
+    properties:
+      name:
+        type: "string"
+      port:
+        type: "integer"
+        format: "int32"
+      protocol:
+        type: "string"
+  v1.EventList:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/unversioned.ListMeta"
+      items:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.Event"
+  v1.Event:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/v1.ObjectMeta"
+      involvedObject:
+        $ref: "#/definitions/v1.ObjectReference"
+      reason:
+        type: "string"
+      message:
+        type: "string"
+      source:
+        $ref: "#/definitions/v1.EventSource"
+      firstTimestamp:
+        type: "string"
+      lastTimestamp:
+        type: "string"
+      count:
+        type: "integer"
+        format: "int32"
+      type:
+          type: "string"
+  v1.EventSource:
+    type: object
+    properties:
+      component:
+        type: "string"
+      host:
+        type: "string"
+  v1.LimitRangeList:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/unversioned.ListMeta"
+      items:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.LimitRange"
+  v1.LimitRange:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/v1.ObjectMeta"
+      spec:
+        $ref: "#/definitions/v1.LimitRangeSpec"
+  v1.LimitRangeSpec:
+    type: object
+    properties:
+    limits:
+      type: "array"
+      items:
+        $ref: "#/definitions/v1.LimitRangeItem"
+  v1.LimitRangeItem:
+    type: object
+    properties:
+      type:
+        type: "string"
+      max:
+        type: "object"
+      min:
+        type: "object"
+      default:
+        type: "object"
+      defaultRequest:
+        type: "object"
+      maxLimitRequestRatio:
+        type: "object"
+  v1.NamespaceList:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/unversioned.ListMeta"
+      items:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.Namespace"
+  v1.Namespace:
+    type: object
+    properties:
+    kind:
+        type: "string"
+    apiVersion:
+        type: "string"
+    metadata:
+        $ref: "#/definitions/v1.ObjectMeta"
+    spec:
+        $ref: "#/definitions/v1.NamespaceSpec"
+    status:
+        $ref: "#/definitions/v1.NamespaceStatus"
+  v1.NamespaceSpec:
+    type: object
+    properties:
+    finalizers:
+        type: "array"
+        items:
+            $ref: "#/definitions/v1.FinalizerName"
+  v1.FinalizerName:
+    type: object
+    properties: {}
+  v1.NamespaceStatus:
+    type: object
+    properties:
+    phase:
+      type: "string"
+  v1.NodeList:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/unversioned.ListMeta"
+      items:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.Node"
+  v1.Node:
+    type: object
+    properties:
+    kind:
+      type: "string"
+    apiVersion:
+      type: "string"
+    metadata:
+      $ref: "#/definitions/v1.ObjectMeta"
+    spec:
+      $ref: "#/definitions/v1.NodeSpec"
+    status:
+      $ref: "#/definitions/v1.NodeStatus"
+  v1.NodeSpec:
+    type: object
+    properties:
+      podCIDR:
+        type: "string"
+      externalID:
+        type: "string"
+      providerID:
+        type: "string"
+      unschedulable:
+        type: "boolean"
+  v1.NodeStatus:
+    type: object
+    properties:
+      capacity:
+        type: "object"
+      allocatable:
+        type: "object"
+      phase:
+        type: "string"
+      conditions:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.NodeCondition"
+      addresses:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.NodeAddress"
+      daemonEndpoints:
+        $ref: "#/definitions/v1.NodeDaemonEndpoints"
+      nodeInfo:
+        $ref: "#/definitions/v1.NodeSystemInfo"
+      images:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.ContainerImage"
+      volumesInUse:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.UniqueDeviceName"
+  v1.NodeCondition:
+    type: object
+    properties:
+      type:
+        type: "string"
+      status:
+        type: "string"
+      lastHeartbeatTime:
+        type: "string"
+      lastTransitionTime:
+        type: "string"
+      reason:
+        type: "string"
+      message:
+        type: "string"
+  v1.NodeAddress:
+    type: object
+    properties:
+      type:
+        type: "string"
+      address:
+        type: "string"
+  v1.NodeDaemonEndpoints:
+    type: object
+    properties:
+      kubeletEndpoint:
+        $ref: "#/definitions/v1.DaemonEndpoint"
+  v1.DaemonEndpoint:
+    type: object
+    properties:
+      Port:
+        type: "integer"
+        format: "int32"
+  v1.NodeSystemInfo:
+    type: object
+    properties:
+      machineID:
+        type: "string"
+      systemUUID:
+        type: "string"
+      bootID:
+        type: "string"
+      kernelVersion:
+        type: "string"
+      osImage:
+        type: "string"
+      containerRuntimeVersion:
+        type: "string"
+      kubeletVersion:
+        type: "string"
+      kubeProxyVersion:
+        type: "string"
+      operatingSystem:
+        type: "string"
+      architecture:
+        type: "string"
+  v1.ContainerImage:
+    type: object
+    properties:
+      names:
+        type: "array"
+        items:
+          type: "string"
+      sizeBytes:
+        type: "integer"
+        format: "int64"
+  v1.UniqueDeviceName:
+    type: string
+  v1.PersistentVolumeClaimList:
+    type: object
+    properties:
+    kind:
+      type: "string"
+    apiVersion:
+      type: "string"
+    metadata:
+      $ref: "#/definitions/unversioned.ListMeta"
+    items:
+      type: "array"
+      items:
+        $ref: "#/definitions/v1.PersistentVolumeClaim"
+  v1.PersistentVolumeClaim:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/v1.ObjectMeta"
+      spec:
+        $ref: "#/definitions/v1.PersistentVolumeClaimSpec"
+      status:
+        $ref: "#/definitions/v1.PersistentVolumeClaimStatus"
+  v1.PersistentVolumeClaimSpec:
+    type: object
+    properties:
+      accessModes:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.PersistentVolumeAccessMode"
+      selector:
+          $ref: "#/definitions/unversioned.LabelSelector"
+      resources:
+          $ref: "#/definitions/v1.ResourceRequirements"
+      volumeName:
+          type: "string"
+  v1.PersistentVolumeAccessMode:
+    type: string
+  unversioned.LabelSelector:
+    type: object
+    properties:
+      matchLabels:
+        type: "object"
+      matchExpressions:
+        type: "array"
+        items:
+          $ref: "#/definitions/unversioned.LabelSelectorRequirement"
+  unversioned.LabelSelectorRequirement:
+    type: object
+    properties:
+      key:
+        type: "string"
+      operator:
+        type: "string"
+      values:
+        type: "array"
+        items:
+          type: "string"
+  v1.ResourceRequirements:
+    type: object
+    properties:
+      limits:
+          type: "object"
+      requests:
+          type: "object"
+  v1.PersistentVolumeClaimStatus:
+    type: object
+    properties:
+      phase:
+        type: "string"
+      accessModes:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.PersistentVolumeAccessMode"
+      capacity:
+          type: "object"
+  v1.PersistentVolumeList:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/unversioned.ListMeta"
+      items:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.PersistentVolume"
+  v1.PersistentVolume:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/v1.ObjectMeta"
+      spec:
+        $ref: "#/definitions/v1.PersistentVolumeSpec"
+      status:
+        $ref: "#/definitions/v1.PersistentVolumeStatus"
+  v1.PersistentVolumeSpec:
+    type: object
+    properties:
+      capacity:
+        type: "object"
+      gcePersistentDisk:
+        $ref: "#/definitions/v1.GCEPersistentDiskVolumeSource"
+      awsElasticBlockStore:
+        $ref: "#/definitions/v1.AWSElasticBlockStoreVolumeSource"
+      hostPath:
+        $ref: "#/definitions/v1.HostPathVolumeSource"
+      glusterfs:
+        $ref: "#/definitions/v1.GlusterfsVolumeSource"
+      nfs:
+        $ref: "#/definitions/v1.NFSVolumeSource"
+      rbd:
+        $ref: "#/definitions/v1.RBDVolumeSource"
+      iscsi:
+        $ref: "#/definitions/v1.ISCSIVolumeSource"
+      cinder:
+        $ref: "#/definitions/v1.CinderVolumeSource"
+      cephfs:
+        $ref: "#/definitions/v1.CephFSVolumeSource"
+      fc:
+        $ref: "#/definitions/v1.FCVolumeSource"
+      flocker:
+        $ref: "#/definitions/v1.FlockerVolumeSource"
+      flexVolume:
+        $ref: "#/definitions/v1.FlexVolumeSource"
+      azureFile:
+        $ref: "#/definitions/v1.AzureFileVolumeSource"
+      vsphereVolume:
+        $ref: "#/definitions/v1.VsphereVirtualDiskVolumeSource"
+      accessModes:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.PersistentVolumeAccessMode"
+      claimRef:
+          $ref: "#/definitions/v1.ObjectReference"
+      persistentVolumeReclaimPolicy:
+          type: "string"
+  v1.GCEPersistentDiskVolumeSource:
+    type: object
+    required:
+    - "pdName"
+    properties:
+      pdName:
+        type: "string"
+      fsType:
+        type: "string"
+      partition:
+        type: "integer"
+        format: "int32"
+      readOnly:
+        type: "boolean"
+  v1.AWSElasticBlockStoreVolumeSource:
+    type: object
+    properties:
+      volumeID:
+        type: "string"
+      fsType:
+        type: "string"
+      partition:
+        type: "integer"
+        format: "int32"
+      readOnly:
+        type: "boolean"
+  v1.HostPathVolumeSource:
+    type: object
+    properties:
+      path:
+        type: "string"
+  v1.GlusterfsVolumeSource:
+    type: object
+    properties:
+      endpoints:
+        type: "string"
+      path:
+        type: "string"
+      readOnly:
+        type: "boolean"
+  v1.NFSVolumeSource:
+    type: object
+    properties:
+      server:
+        type: "string"
+      path:
+        type: "string"
+      readOnly:
+        type: "boolean"
+  v1.RBDVolumeSource:
+    type: object
+    properties:
+      monitors:
+        type: "array"
+        items:
+          type: "string"
+      image:
+        type: "string"
+      fsType:
+        type: "string"
+      pool:
+        type: "string"
+      user:
+        type: "string"
+      keyring:
+        type: "string"
+      secretRef:
+        $ref: "#/definitions/v1.LocalObjectReference"
+      readOnly:
+        type: "boolean"
+  v1.LocalObjectReference:
+    type: object
+    properties:
+    name:
+      type: "string"
+  v1.ISCSIVolumeSource:
+    type: object
+    properties:
+      targetPortal:
+        type: "string"
+      iqn:
+        type: "string"
+      lun:
+        type: "integer"
+        format: "int32"
+      iscsiInterface:
+        type: "string"
+      fsType:
+        type: "string"
+      readOnly:
+        type: "boolean"
+  v1.CinderVolumeSource:
+    type: object
+    properties:
+      volumeID:
+        type: "string"
+      fsType:
+        type: "string"
+      readOnly:
+        type: "boolean"
+  v1.CephFSVolumeSource:
+    type: object
+    properties:
+      monitors:
+        type: "array"
+        items:
+          type: "string"
+      path:
+        type: "string"
+      user:
+        type: "string"
+      secretFile:
+        type: "string"
+      secretRef:
+        $ref: "#/definitions/v1.LocalObjectReference"
+      readOnly:
+        type: "boolean"
+  v1.FCVolumeSource:
+    type: object
+    properties:
+      targetWWNs:
+        type: "array"
+        items:
+          type: "string"
+      lun:
+        type: "integer"
+        format: "int32"
+      fsType:
+        type: "string"
+      readOnly:
+        type: "boolean"
+  v1.FlockerVolumeSource:
+    type: object
+    properties:
+      datasetName:
+        type: "string"
+  v1.FlexVolumeSource:
+    type: object
+    properties:
+      driver:
+        type: "string"
+      fsType:
+        type: "string"
+      secretRef:
+        $ref: "#/definitions/v1.LocalObjectReference"
+      readOnly:
+        type: "boolean"
+      options:
+        type: "object"
+  v1.AzureFileVolumeSource:
+    type: object
+    properties:
+      secretName:
+        type: "string"
+      shareName:
+        type: "string"
+      readOnly:
+        type: "boolean"
+  v1.VsphereVirtualDiskVolumeSource:
+    type: object
+    properties:
+      volumePath:
+        type: "string"
+      fsType:
+        type: "string"
+  v1.PersistentVolumeStatus:
+    type: object
+    properties:
+      phase:
+        type: "string"
+      message:
+        type: "string"
+      reason:
+        type: "string"
+  v1.PodList:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/unversioned.ListMeta"
+      items:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.Pod"
+  v1.Pod:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/v1.ObjectMeta"
+      spec:
+        $ref: "#/definitions/v1.PodSpec"
+      status:
+        $ref: "#/definitions/v1.PodStatus"
+  v1.PodSpec:
+    type: object
+    properties:
+      volumes:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.Volume"
+      containers:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.Container"
+      restartPolicy:
+        type: "string"
+      terminationGracePeriodSeconds:
+        type: "integer"
+        format: "int64"
+      activeDeadlineSeconds:
+        type: "integer"
+        format: "int64"
+      dnsPolicy:
+        type: "string"
+      nodeSelector:
+        type: "object"
+      serviceAccountName:
+        type: "string"
+      serviceAccount:
+        type: "string"
+      nodeName:
+        type: "string"
+      hostNetwork:
+        type: "boolean"
+      hostPID:
+        type: "boolean"
+      hostIPC:
+        type: "boolean"
+      securityContext:
+        $ref: "#/definitions/v1.PodSecurityContext"
+      imagePullSecrets:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.LocalObjectReference"
+      hostname:
+        type: "string"
+      subdomain:
+        type: "string"
+  v1.Volume:
+    type: object
+    properties:
+      name:
+        type: "string"
+      hostPath:
+        $ref: "#/definitions/v1.HostPathVolumeSource"
+      emptyDir:
+        $ref: "#/definitions/v1.EmptyDirVolumeSource"
+      gcePersistentDisk:
+        $ref: "#/definitions/v1.GCEPersistentDiskVolumeSource"
+      awsElasticBlockStore:
+        $ref: "#/definitions/v1.AWSElasticBlockStoreVolumeSource"
+      gitRepo:
+        $ref: "#/definitions/v1.GitRepoVolumeSource"
+      secret:
+        $ref: "#/definitions/v1.SecretVolumeSource"
+      nfs:
+        $ref: "#/definitions/v1.NFSVolumeSource"
+      iscsi:
+        $ref: "#/definitions/v1.ISCSIVolumeSource"
+      glusterfs:
+        $ref: "#/definitions/v1.GlusterfsVolumeSource"
+      persistentVolumeClaim:
+        $ref: "#/definitions/v1.PersistentVolumeClaimVolumeSource"
+      rbd:
+        $ref: "#/definitions/v1.RBDVolumeSource"
+      flexVolume:
+        $ref: "#/definitions/v1.FlexVolumeSource"
+      cinder:
+        $ref: "#/definitions/v1.CinderVolumeSource"
+      cephfs:
+        $ref: "#/definitions/v1.CephFSVolumeSource"
+      flocker:
+        $ref: "#/definitions/v1.FlockerVolumeSource"
+      downwardAPI:
+        $ref: "#/definitions/v1.DownwardAPIVolumeSource"
+      fc:
+        $ref: "#/definitions/v1.FCVolumeSource"
+      azureFile:
+        $ref: "#/definitions/v1.AzureFileVolumeSource"
+      configMap:
+        $ref: "#/definitions/v1.ConfigMapVolumeSource"
+      vsphereVolume:
+        $ref: "#/definitions/v1.VsphereVirtualDiskVolumeSource"
+  v1.EmptyDirVolumeSource:
+    type: object
+    properties:
+      medium:
+        type: "string"
+  v1.GitRepoVolumeSource:
+    type: object
+    required:
+    - "repository"
+    properties:
+      repository:
+        type: "string"
+      revision:
+        type: "string"
+      directory:
+        type: "string"
+  v1.SecretVolumeSource:
+    type: object
+    properties:
+      secretName:
+        type: "string"
+      items:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.KeyToPath"
+  v1.KeyToPath:
+    type: object
+    properties:
+      key:
+        type: "string"
+      path:
+        type: "string"
+  v1.PersistentVolumeClaimVolumeSource:
+    type: object
+    properties:
+      claimName:
+        type: "string"
+      readOnly:
+        type: "boolean"
+  v1.DownwardAPIVolumeSource:
+    type: object
+    properties:
+      items:
+        type: "array"
+        items:
+         $ref: "#/definitions/v1.DownwardAPIVolumeFile"
+  v1.DownwardAPIVolumeFile:
+    type: object
+    properties:
+      path:
+        type: "string"
+      fieldRef:
+        $ref: "#/definitions/v1.ObjectFieldSelector"
+      resourceFieldRef:
+        $ref: "#/definitions/v1.ResourceFieldSelector"
+  v1.ObjectFieldSelector:
+    type: object
+    properties:
+      apiVersion:
+        type: "string"
+      fieldPath:
+        type: "string"
+  v1.ResourceFieldSelector:
+    type: object
+    properties:
+      containerName:
+        type: "string"
+      resource:
+        type: "string"
+      divisor:
+        type: "string"
+  v1.ConfigMapVolumeSource:
+    type: object
+    properties:
+      name:
+        type: "string"
+      items:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.KeyToPath"
+  v1.Container:
+    type: object
+    required:
+    - "name"
+    properties:
+      name:
+        type: "string"
+      image:
+        type: "string"
+      command:
+        type: "array"
+        items:
+          type: "string"
+      args:
+        type: "array"
+        items:
+          type: "string"
+      workingDir:
+        type: "string"
+      ports:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.ContainerPort"
+      env:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.EnvVar"
+      resources:
+        $ref: "#/definitions/v1.ResourceRequirements"
+      volumeMounts:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.VolumeMount"
+      livenessProbe:
+        $ref: "#/definitions/v1.Probe"
+      readinessProbe:
+        $ref: "#/definitions/v1.Probe"
+      lifecycle:
+        $ref: "#/definitions/v1.Lifecycle"
+      terminationMessagePath:
+        type: "string"
+      imagePullPolicy:
+        type: "string"
+      securityContext:
+        $ref: "#/definitions/v1.SecurityContext"
+      stdin:
+        type: "boolean"
+      stdinOnce:
+        type: "boolean"
+      tty:
+        type: "boolean"
+  v1.ContainerPort:
+    type: object
+    properties:
+      name:
+        type: "string"
+      hostPort:
+        type: "integer"
+        format: "int32"
+      containerPort:
+        type: "integer"
+        format: "int32"
+      protocol:
+        type: "string"
+      hostIP:
+        type: "string"
+  v1.EnvVar:
+    type: object
+    properties:
+      name:
+        type: "string"
+      value:
+        type: "string"
+      valueFrom:
+        $ref: "#/definitions/v1.EnvVarSource"
+  v1.EnvVarSource:
+    type: object
+    properties:
+      fieldRef:
+        $ref: "#/definitions/v1.ObjectFieldSelector"
+      resourceFieldRef:
+        $ref: "#/definitions/v1.ResourceFieldSelector"
+      configMapKeyRef:
+        $ref: "#/definitions/v1.ConfigMapKeySelector"
+      secretKeyRef:
+        $ref: "#/definitions/v1.SecretKeySelector"
+  v1.ConfigMapKeySelector:
+    type: object
+    properties:
+      name:
+        type: "string"
+      key:
+        type: "string"
+  v1.SecretKeySelector:
+    type: object
+    properties:
+      name:
+        type: "string"
+      key:
+        type: "string"
+  v1.VolumeMount:
+    type: object
+    properties:
+      name:
+        type: "string"
+      readOnly:
+        type: "boolean"
+      mountPath:
+        type: "string"
+      subPath:
+        type: "string"
+  v1.Probe:
+    type: object
+    properties:
+      exec:
+        $ref: "#/definitions/v1.ExecAction"
+      httpGet:
+        $ref: "#/definitions/v1.HTTPGetAction"
+      tcpSocket:
+        $ref: "#/definitions/v1.TCPSocketAction"
+      initialDelaySeconds:
+        type: "integer"
+        format: "int32"
+      timeoutSeconds:
+        type: "integer"
+        format: "int32"
+      periodSeconds:
+        type: "integer"
+        format: "int32"
+      successThreshold:
+        type: "integer"
+        format: "int32"
+      failureThreshold:
+        type: "integer"
+        format: "int32"
+  v1.ExecAction:
+    type: object
+    properties:
+      command:
+        type: "array"
+        items:
+          type: "string"
+  v1.HTTPGetAction:
+    type: object
+    properties:
+      path:
+        type: "string"
+      port:
+        type: "string"
+      host:
+        type: "string"
+      scheme:
+        type: "string"
+      httpHeaders:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.HTTPHeader"
+  v1.HTTPHeader:
+    type: object
+    properties:
+      name:
+        type: "string"
+      value:
+        type: "string"
+  v1.TCPSocketAction:
+    type: object
+    properties:
+      port:
+        type: "string"
+  v1.Lifecycle:
+    type: object
+    properties:
+      postStart:
+        $ref: "#/definitions/v1.Handler"
+      preStop:
+        $ref: "#/definitions/v1.Handler"
+  v1.Handler:
+    type: object
+    properties:
+      exec:
+        $ref: "#/definitions/v1.ExecAction"
+      httpGet:
+        $ref: "#/definitions/v1.HTTPGetAction"
+      tcpSocket:
+        $ref: "#/definitions/v1.TCPSocketAction"
+  v1.SecurityContext:
+    type: object
+    properties:
+      capabilities:
+        $ref: "#/definitions/v1.Capabilities"
+      privileged:
+        type: "boolean"
+      seLinuxOptions:
+        $ref: "#/definitions/v1.SELinuxOptions"
+      runAsUser:
+        type: "integer"
+        format: "int64"
+      runAsNonRoot:
+        type: "boolean"
+      readOnlyRootFilesystem:
+        type: "boolean"
+  v1.Capabilities:
+    type: object
+    properties:
+      add:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.Capability"
+      drop:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.Capability"
+  v1.Capability:
+    type: object
+    properties: {}
+  v1.SELinuxOptions:
+    type: object
+    properties:
+      user:
+        type: "string"
+      role:
+        type: "string"
+      type:
+        type: "string"
+      level:
+        type: "string"
+  v1.PodSecurityContext:
+    type: object
+    properties:
+      seLinuxOptions:
+        $ref: "#/definitions/v1.SELinuxOptions"
+      runAsUser:
+        type: "integer"
+        format: "int64"
+      runAsNonRoot:
+        type: "boolean"
+      supplementalGroups:
+        type: "array"
+        items:
+          type: "integer"
+      fsGroup:
+        type: "integer"
+        format: "int64"
+  v1.PodStatus:
+    type: object
+    properties:
+      phase:
+        type: "string"
+      conditions:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.PodCondition"
+      message:
+        type: "string"
+      reason:
+        type: "string"
+      hostIP:
+        type: "string"
+      podIP:
+        type: "string"
+      startTime:
+        type: "string"
+      containerStatuses:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.ContainerStatus"
+  v1.PodCondition:
+    type: object
+    properties:
+      type:
+        type: "string"
+      status:
+        type: "string"
+      lastProbeTime:
+        type: "string"
+      lastTransitionTime:
+        type: "string"
+      reason:
+        type: "string"
+      message:
+        type: "string"
+  v1.ContainerStatus:
+    type: object
+    properties:
+      name:
+        type: "string"
+      state:
+        $ref: "#/definitions/v1.ContainerState"
+      lastState:
+        $ref: "#/definitions/v1.ContainerState"
+      ready:
+        type: "boolean"
+      restartCount:
+        type: "integer"
+        format: "int32"
+      image:
+        type: "string"
+      imageID:
+        type: "string"
+      containerID:
+        type: "string"
+  v1.ContainerState:
+    type: object
+    properties:
+      waiting:
+        $ref: "#/definitions/v1.ContainerStateWaiting"
+      running:
+        $ref: "#/definitions/v1.ContainerStateRunning"
+      terminated:
+        $ref: "#/definitions/v1.ContainerStateTerminated"
+  v1.ContainerStateWaiting:
+    type: object
+    properties:
+      reason:
+        type: "string"
+      message:
+        type: "string"
+  v1.ContainerStateRunning:
+    type: object
+    properties:
+      startedAt:
+        type: "string"
+  v1.ContainerStateTerminated:
+    type: object
+    properties:
+      exitCode:
+        type: "integer"
+        format: "int32"
+      signal:
+        type: "integer"
+        format: "int32"
+      reason:
+        type: "string"
+      message:
+        type: "string"
+      startedAt:
+        type: "string"
+      finishedAt:
+        type: "string"
+      containerID:
+        type: "string"
+  v1.PodTemplateList:
+    type: object
+    properties:
+    kind:
+      type: "string"
+    apiVersion:
+      type: "string"
+    metadata:
+      $ref: "#/definitions/unversioned.ListMeta"
+    items:
+      type: "array"
+      items:
+        $ref: "#/definitions/v1.PodTemplate"
+  v1.PodTemplate:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/v1.ObjectMeta"
+      template:
+        $ref: "#/definitions/v1.PodTemplateSpec"
+  v1.PodTemplateSpec:
+    type: object
+    properties:
+      metadata:
+        $ref: "#/definitions/v1.ObjectMeta"
+      spec:
+        $ref: "#/definitions/v1.PodSpec"
+  v1.ReplicationControllerList:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/unversioned.ListMeta"
+      items:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.ReplicationController"
+  v1.ReplicationController:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/v1.ObjectMeta"
+      spec:
+        $ref: "#/definitions/v1.ReplicationControllerSpec"
+      status:
+        $ref: "#/definitions/v1.ReplicationControllerStatus"
+  v1.ReplicationControllerSpec:
+    type: object
+    properties:
+      replicas:
+        type: "integer"
+        format: "int32"
+      selector:
+        type: "object"
+      template:
+        $ref: "#/definitions/v1.PodTemplateSpec"
+  v1.ReplicationControllerStatus:
+    type: object
+    properties:
+      replicas:
+        type: "integer"
+        format: "int32"
+      fullyLabeledReplicas:
+        type: "integer"
+        format: "int32"
+      observedGeneration:
+        type: "integer"
+        format: "int64"
+  v1.Scale:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/v1.ObjectMeta"
+      spec:
+        $ref: "#/definitions/v1.ScaleSpec"
+      status:
+        $ref: "#/definitions/v1.ScaleStatus"
+  v1.ScaleSpec:
+    type: object
+    properties:
+      replicas:
+        type: "integer"
+        format: "int32"
+  v1.ScaleStatus:
+    type: object
+    properties:
+      replicas:
+        type: "integer"
+        format: "int32"
+      selector:
+        type: "string"
+  v1.ResourceQuotaList:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/unversioned.ListMeta"
+      items:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.ResourceQuota"
+  v1.ResourceQuota:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/v1.ObjectMeta"
+      spec:
+        $ref: "#/definitions/v1.ResourceQuotaSpec"
+      status:
+        $ref: "#/definitions/v1.ResourceQuotaStatus"
+  v1.ResourceQuotaSpec:
+    type: object
+    properties:
+    hard:
+      type: "object"
+    scopes:
+      type: "array"
+      items:
+        $ref: "#/definitions/v1.ResourceQuotaScope"
+  v1.ResourceQuotaScope:
+    type: object
+    properties: {}
+  v1.ResourceQuotaStatus:
+    type: object
+    properties:
+      hard:
+        type: "object"
+      used:
+        type: "object"
+  v1.SecretList:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/unversioned.ListMeta"
+      items:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.Secret"
+  v1.Secret:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/v1.ObjectMeta"
+      data:
+        type: "object"
+      type:
+        type: "string"
+  v1.ServiceAccountList:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/unversioned.ListMeta"
+      items:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.ServiceAccount"
+  v1.ServiceAccount:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/v1.ObjectMeta"
+      secrets:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.ObjectReference"
+      imagePullSecrets:
+          type: "array"
+          items:
+            $ref: "#/definitions/v1.LocalObjectReference"
+  v1.ServiceList:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/unversioned.ListMeta"
+      items:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.Service"
+  v1.Service:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/v1.ObjectMeta"
+      spec:
+        $ref: "#/definitions/v1.ServiceSpec"
+      status:
+        $ref: "#/definitions/v1.ServiceStatus"
+  v1.ServiceSpec:
+    type: object
+    properties:
+      ports:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.ServicePort"
+      selector:
+        type: "object"
+      clusterIP:
+        type: "string"
+      type:
+        type: "string"
+      externalIPs:
+        type: "array"
+        items:
+          type: "string"
+      deprecatedPublicIPs:
+        type: "array"
+        items:
+          type: "string"
+      sessionAffinity:
+        type: "string"
+      loadBalancerIP:
+        type: "string"
+      loadBalancerSourceRanges:
+        type: "array"
+        items:
+          type: "string"
+  v1.ServicePort:
+    type: object
+    properties:
+      name:
+        type: "string"
+      protocol:
+        type: "string"
+      port:
+        type: "integer"
+        format: "int32"
+      targetPort:
+        type: "string"
+      nodePort:
+        type: "integer"
+        format: "int32"
+  v1.ServiceStatus:
+    type: object
+    properties:
+      loadBalancer:
+        $ref: "#/definitions/v1.LoadBalancerStatus"
+  v1.LoadBalancerStatus:
+    type: object
+    properties:
+      ingress:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1.LoadBalancerIngress"
+  v1.LoadBalancerIngress:
+    type: object
+    properties:
+      ip:
+        type: "string"
+      hostname:
+        type: "string"
+  unversioned.APIResourceList:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      groupVersion:
+        type: "string"
+      resources:
+        type: "array"
+        items:
+          $ref: "#/definitions/unversioned.APIResource"
+  unversioned.APIResource:
+    type: object
+    properties:
+      name:
+        type: "string"
+      namespaced:
+        type: "boolean"
+      kind:
+        type: "string"
+  v1beta1.JobList:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/unversioned.ListMeta"
+      items:
+        type: "array"
+        items:
+          $ref: "#/definitions/v1beta1.Job"
+  v1beta1.Job:
+    type: object
+    properties:
+      kind:
+        type: "string"
+      apiVersion:
+        type: "string"
+      metadata:
+        $ref: "#/definitions/v1.ObjectMeta"
+      spec:
+        $ref: "#/definitions/v1beta1.JobSpec"
+      status:
+        $ref: "#/definitions/v1beta1.JobStatus"
+  v1beta1.JobSpec:
+    type: object
+    properties:
+      parallelism:
+        type: "integer"
+        format: "int32"
+      completions:
+        type: "integer"
+        format: "int32"
+      activeDeadlineSeconds:
+        type: "integer"
+        format: "int64"
+      selector:
+        $ref: "#/definitions/unversioned.LabelSelector"
+      autoSelector:
+        type: "boolean"
+      template:
+        $ref: "#/definitions/v1.PodTemplateSpec"
+  v1beta1.JobStatus:
+      type: object
+      properties:
+        conditions:
+          type: "array"
+          items:
+            $ref: "#/definitions/v1beta1.JobCondition"
+        startTime:
+          type: "string"
+        completionTime:
+          type: "string"
+        active:
+          type: "integer"
+          format: "int32"
+        succeeded:
+          type: "integer"
+          format: "int32"
+        failed:
+          type: "integer"
+          format: "int32"
+  v1beta1.JobCondition:
+    type: object
+    properties:
+      type:
+        type: "string"
+      status:
+        type: "string"
+      lastProbeTime:
+        type: "string"
+      lastTransitionTime:
+        type: "string"
+      reason:
+        type: "string"
+      message:
+        type: "string"
