@@ -181,47 +181,6 @@ func TestServiceInstancesPut(t *testing.T) {
 	})
 }
 
-func TestGetQuota(t *testing.T) {
-	r, _, mockKubernetesApi, mockStateService, mockCreatorConnector, _ := prepareMocksAndRouter(t)
-	r.Get(URLquotaPath, (*Context).GetQuota)
-
-	Convey("Test GetQuota", t, func() {
-		//todo fixme
-		/*Convey("Should returns proper response", func() {
-			req_body := ServiceInstancesPutRequest{OrganizationGuid: tst.TestOrgGuid, SpaceGuid: tst.TestSpaceGuid}
-
-			memory_value := "memory OK"
-			quotaList := *api.ResourceQuotaList{Items: []api.ResourceQuota{api.ResourceQuotaSpec{
-				Status: k8s.K8sResourceQuotaStatus{Used: k8s.K8sQuotaElements{Memory: memory_value}}}}}
-
-			mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil)
-			mockKubernetesApi.EXPECT().GetQuota(testCreds, tst.TestSpaceGuid).Return(quotaList, nil)
-			rr := sendRequest("GET", URLquotaPath, marshallToJson(t, req_body), r)
-
-			assertResponse(rr, memory_value, 202)
-		})*/
-
-		Convey("Should returns error when incorete request body", func() {
-			mockStateService.EXPECT().ReportProgress(gomock.Any(), "FAILED", gomock.Any())
-
-			rr := sendRequest("GET", URLquotaPath, []byte("{WrongJson]"), r)
-			assertResponse(rr, "", 500)
-		})
-
-		Convey("Should returns error on kubernetes error", func() {
-			mockStateService.EXPECT().ReportProgress(gomock.Any(), "FAILED", gomock.Any())
-
-			req_body := ServiceInstancesPutRequest{OrganizationGuid: tst.TestOrgGuid, SpaceGuid: tst.TestSpaceGuid}
-			mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil)
-			mockKubernetesApi.EXPECT().GetQuota(testCreds, tst.TestSpaceGuid).Return(&api.ResourceQuotaList{}, errors.New("KUBERNETES ERROR"))
-			rr := sendRequest("GET", URLquotaPath, marshallToJson(t, req_body), r)
-
-			assertResponse(rr, "", 500)
-		})
-
-	})
-}
-
 func TestGetCatalog(t *testing.T) {
 	r, _, _, _, _, _ := prepareMocksAndRouter(t)
 	r.Get(URLcatalogPath, (*Context).Catalog)

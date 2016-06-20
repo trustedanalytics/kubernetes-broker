@@ -168,34 +168,6 @@ func (c *Context) ServiceInstancesPut(rw web.ResponseWriter, req *web.Request) {
 
 }
 
-func (c *Context) GetQuota(rw web.ResponseWriter, req *web.Request) {
-	req_json := ServiceInstancesPutRequest{}
-	logger.Info("getting quota")
-	err := util.ReadJson(req, &req_json)
-	if err != nil {
-		brokerConfig.StateService.ReportProgress("1", "FAILED", err)
-		util.Respond500(rw, err)
-		return
-	}
-
-	_, creds, err := brokerConfig.CreatorConnector.GetCluster(req_json.OrganizationGuid)
-	if err != nil {
-		util.Respond500(rw, err)
-		return
-	}
-
-	quotaResource, err := brokerConfig.KubernetesApi.GetQuota(creds, req_json.SpaceGuid)
-
-	if err != nil {
-		brokerConfig.StateService.ReportProgress("1", "FAILED", err)
-		util.Respond500(rw, err)
-		return
-	}
-
-	util.WriteJson(rw, quotaResource.Items[0].Status.Used.Memory, http.StatusAccepted)
-
-}
-
 type ServiceInfoResponse struct {
 	ServiceId string   `json:"serviceId"`
 	Org       string   `json:"org"`

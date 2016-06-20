@@ -70,7 +70,6 @@ func main() {
 	jwtRouter.Get("/kubernetes/:org_id/:space_id/service/:instance_id", (*Context).GetService)
 	jwtRouter.Get("/kubernetes/:org_id/:space_id/services", (*Context).GetServices)
 	jwtRouter.Post("/kubernetes/service/visibility", (*Context).SetServiceVisibility)
-	jwtRouter.Put("/quota", (*Context).GetQuota)
 
 	jwtRouter.Get("/kubernetes/:org_id/secret/:key", (*Context).GetSecret)
 	jwtRouter.Post("/kubernetes/:org_id/secret/:key", (*Context).CreateSecret)

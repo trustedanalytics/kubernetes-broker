@@ -1,0 +1,847 @@
+swagger: '2.0'
+info:
+  title: Kubernetes-broker API
+  version: "0.8.24"
+schemes:
+  - https
+basePath: /
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /rest/kubernetes/{org_id}/{space_id}/service/{instance_id}:
+    get:
+      summary: Fetch service info
+      parameters:
+        - name: org_id
+          in: path
+          description: Organization ID
+          required: true
+          type: string
+        - name: space_id
+          in: path
+          description: Space ID
+          required: true
+          type: string
+        - name: instance_id
+          in: path
+          description: Service instance ID
+          required: true
+          type: string
+      tags:
+        - Services
+      responses:
+        202:
+          description: An array of services' infos
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/ServiceInfoResponse'
+        500:
+          description: Unexpected error
+  /rest/kubernetes/{org_id}/{space_id}/services:
+    get:
+      summary: Fetch services info
+      parameters:
+        - name: org_id
+          in: path
+          description: Organization ID
+          required: true
+          type: string
+        - name: space_id
+          in: path
+          description: Space ID
+          required: true
+          type: string
+      tags:
+        - Services
+      responses:
+        202:
+          description: An array of services' infos
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/ServiceInfoResponse'
+        500:
+          description: Unexpected error
+  /rest/kubernetes/service/visibility:
+    post:
+      summary: Set service visibility
+      parameters:
+        - name: ServiceInstancesPutRequest
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/ServiceInstancesPutRequest"
+      tags:
+        - Services
+      responses:
+        202:
+          description: An array of services' infos
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/ServiceInfoResponse'
+        500:
+          description: Unexpected error
+  /rest/kubernetes/{org_id}/secret/{key}:
+    get:
+      summary: Get secret
+      parameters:
+        - name: org_id
+          in: path
+          description: Organization ID
+          required: true
+          type: string
+        - name: key
+          in: path
+          description: Key ID
+          required: true
+          type: string
+      tags:
+        - Secrets
+      responses:
+        200:
+          description: An array of secrets
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Secret'
+        500:
+          description: Unexpected error
+    post:
+      summary: Create secret
+      parameters:
+        - name: org_id
+          in: path
+          description: Organization ID
+          required: true
+          type: string
+        - name: key
+          in: path
+          description: Key ID
+          required: true
+          type: string
+        - name: Secret
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/Secret"
+      tags:
+        - Secrets
+      responses:
+        200:
+          description: Just OK
+        500:
+          description: Unexpected error
+    delete:
+      summary: Delete secret
+      parameters:
+        - name: org_id
+          in: path
+          description: Organization ID
+          required: true
+          type: string
+        - name: key
+          in: path
+          description: Key ID
+          required: true
+          type: string
+      tags:
+        - Secrets
+      responses:
+        200:
+          description: Just OK
+        500:
+          description: Unexpected error
+    put:
+      summary: Update secret
+      parameters:
+        - in: path
+          name: org_id
+          description: Organization ID
+          required: true
+          type: string
+        - in: path
+          name: key
+          description: Key ID
+          required: true
+          type: string
+        - in: body
+          name: Secret
+          required: true
+          schema:
+            $ref: "#/definitions/Secret"
+      tags:
+        - Secrets
+      responses:
+        200:
+          description: Just OK
+        500:
+          description: Unexpected error
+  /rest/kubernetes/catalog/{service_id}:
+    get:
+      summary: Get service details
+      parameters:
+        - in: path
+          name: service_id
+          description: Service instance ID
+          required: true
+          type: string
+      tags:
+        - Services
+      responses:
+        200:
+          description: Services
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/ServicesMetadata'
+        500:
+          description: Unexpected error
+  /v2/dynamicservice:
+    put:
+      summary: Create and register dynamic service
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/DynamicServiceRequest"
+      tags:
+        - Services
+      responses:
+        201:
+          description: Service created
+        500:
+          description: Unexpected error
+    delete:
+      summary: Delete and unregister dynamic service
+      parameters:
+        - name: ServiceInstancesPutRequest
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/DynamicServiceRequest"
+      tags:
+        - Services
+      responses:
+        204:
+          description: Dynamic service deleted
+        500:
+          description: Unexpected error
+  /v2/{org_id}/service/{instance_id}/status:
+    get:
+      summary: Check pods status for service
+      parameters:
+        - name: org_id
+          in: path
+          description: Organization ID
+          required: true
+          type: string
+        - name: instance_id
+          in: path
+          description: Service instance ID
+          required: true
+          type: string
+      tags:
+        - Services
+      responses:
+        200:
+          description: An array of pods' statuses
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/PodStatus'
+        500:
+          description: Unexpected error
+  /v2/{org_id}/services/status:
+    get:
+      summary: Check pods status for all services in org
+      parameters:
+        - name: org_id
+          in: path
+          description: Organization ID
+          required: true
+          type: string
+      tags:
+        - Services
+      responses:
+        200:
+          description: An array of pods' statuses
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/PodStatus'
+        500:
+          description: Unexpected error
+          
+definitions:
+  ServiceInfoResponse:
+    type: object
+    properties:
+      ServiceId:
+        type: string
+        description: Unique identifier representing an instance of service
+      Org:
+        type: string
+        description: Unique identifier representing an organization in which instance of service is running
+      Space:
+        type: string
+      Name:
+        type: string
+      TapPublic:
+        type: boolean
+      Uri:
+        type: array
+        items:
+          type: string
+  ServiceInstancesPutRequest:
+    type: object
+    properties:
+      OrganizationGuid:
+        type: string
+      PlanId:
+        type: string
+      ServiceId:
+        type: string
+      SpaceGuid:
+        type: string
+      Parameters:
+        type: object
+      Visibility:
+        type: boolean
+  Secret:
+    type: object
+    properties:
+      kind:
+        type: string
+        description: |
+          Kind is a string value representing the REST resource this object represents. Servers may
+          infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase.
+          More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds
+      apiVersion:
+        type: string
+        description: | 
+          APIVersion defines the versioned schema of this representation of an object. Servers should
+          convert recognized schemas to the latest internal value, and may reject unrecognized values.
+          More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources
+      metadata:
+        type: object
+        properties:
+          name:
+            type: string
+          generateName:
+            type: string
+          namespace:
+            type: string
+          selfLink:
+            type: string
+          uid:
+            type: string
+          resourceVersion:
+            type: string
+          generation:
+            type: integer
+          creationTimestamp:
+            type: string
+          deletionTimestamp:
+            type: string
+          deletionGracePeriodSeconds:
+            type: integer
+          labels:
+            type: object
+          annotations:
+            type: object
+      data:
+        type: object
+      type:
+        type: string
+  ServicesMetadata:
+    type: object
+    properties:
+      services:
+        type: array
+        items:
+          $ref: "#/definitions/ServiceMetadata"
+  ServiceMetadata:
+    type: object
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      description:
+        type: string
+      bindable:
+        type: boolean
+      tags:
+        type: array
+        items:
+          type: string
+      plans:
+        type: array
+        items:
+          $ref: "#/definitions/PlanMetadata"
+  PlanMetadata:
+    type: object
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      description:
+        type: string
+      free:
+        type: boolean
+  DynamicServiceRequest:
+    type: object
+    properties:
+      organization_guid:
+        type: string
+      space_guid:
+        type: string
+      parameters:
+        type: object
+      updateBroker:
+        type: boolean
+      dynamicService:
+        $ref: "#/definitions/DynamicService"
+        
+  DynamicService:
+    type: object
+    properties:
+      serviceName:
+        type: string
+      planName:
+        type: string
+      isPlanFree:
+        type: boolean
+      containers:
+        type: array
+        items:
+          $ref: "#/definitions/Container"
+      servicePorts:
+        type: array
+        items:
+          $ref: "#/definitions/ServicePort"
+      credentialMappings:
+        type: object
+  Container:
+    type: object
+    required: [name, image, imagePullPolicy]
+    properties:
+      name:
+        type: string
+        description: | 
+          This must be a DNS_LABEL.  Each container in a pod must have a unique name.
+      image:
+        type: string
+      command:
+        type: array
+        items:
+          type: string
+        description: | 
+          The docker image's entrypoint is used if this is not provided; cannot be updated. Variable
+          references $(VAR_NAME) are expanded using the container's environment.  If a variable cannot be
+          resolved, the reference in the input string will be unchanged.  The $(VAR_NAME) syntax can be
+          escaped with a double $$, ie: $$(VAR_NAME).  Escaped references will never be expanded,
+          regardless of whether the variable exists or not.
+      args:
+        type: array
+        items:
+          type: string
+        description: |
+          The docker image's cmd is used if this is not provided; cannot be updated. 
+          Variable references $(VAR_NAME) are expanded using the container's environment.  
+          If a variable cannot be resolved, the reference in the input string will be unchanged.  
+          The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME).  
+          Escaped references will never be expanded, regardless of whether the variable exists or not.
+      workingDir:
+        type: string
+        description: Defaults to Docker's default.
+      ports:
+        type: array
+        items:
+          $ref: "#/definitions/ContainerPort"
+      env:
+        type: array
+        items:
+          $ref: "#/definitions/EnvVar"
+      resources:
+        $ref: "#/definitions/ResourceRequirements"
+      volumeMounts:
+        type: array
+        items:
+          $ref: "#/definitions/VolumeMount"
+      livenessProbe:
+        $ref: "#/definitions/Probe"
+      readinessProbe:
+        $ref: "#/definitions/Probe"
+      lifecycle:
+        $ref: "#/definitions/Lifecycle"
+      terminationMessagePath:
+        type: string
+      imagePullPolicy:
+        description: | 
+          Policy for pulling images for this container. Available policies are "Always"
+          (kubelet always attempts to pull the latest image.  Container will fail If the pull fails.),
+          "Never" (kubelet never pulls an image, but only uses a local image. Container will fail if the
+          image isn't present), "IfNotPresent" (kubelet pulls if the image isn't present on disk.
+          Container will fail if the image isn't present and the pull fails.)
+        type: string
+      securityContext:
+        description: | 
+          SecurityContext defines the security options the container should be run with. If set, the
+          fields of SecurityContext override the equivalent fields of PodSecurityContext.
+        $ref: "#/definitions/SecurityContext"
+        
+  ContainerPort:
+    type: object
+    required: [containerPort]
+    properties:
+      name:
+        type: string
+        description: |
+          If specified, this must be an IANA_SVC_NAME  Each named port in a pod must have a unique name.
+      hostPort:
+        type: integer
+        description: |
+          If specified, this must be a valid port number, 0 < x < 65536. If HostNetwork is specified, 
+          this must match ContainerPort.
+      containerPort:
+        type: integer
+        description: |
+          This must be a valid port number, 0 < x < 65536.
+      protocol:
+        type: string
+        description: |
+          Supports "TCP" and "UDP".
+      hostIP:
+        type: string
+        description: |
+          What host IP to bind the external port to.
+  EnvVar:
+    type: object
+    required: [name]
+    properties:
+      name:
+        type: string
+        description: This must be a C_IDENTIFIER.
+      value:
+        type: string
+        description: |
+          No more than one of (value, valueFrom) may be specified! 
+          Defaults to ""; variable references $(VAR_NAME) are expanded 
+          using the previous defined environment variables in the container and 
+          any service environment variables.  If a variable cannot be resolved, 
+          the reference in the input string will be unchanged.  The $(VAR_NAME) 
+          syntax can be escaped with a double $$, ie: $$(VAR_NAME).  Escaped 
+          references will never be expanded, regardless of whether the variable 
+          exists or not.
+      valueFrom:
+        $ref: "#/definitions/EnvVarSource"
+  EnvVarSource:
+    type: object
+    properties:
+      fieldRef:
+        $ref: "#/definitions/ObjectFieldSelector"
+      configMapKeyRef:
+        $ref: "#/definitions/ConfigMapKeySelector"
+  ObjectFieldSelector:
+    type: object
+    properties:
+      apiVersion:
+        type: string
+      fieldPath:
+        type: string
+  ConfigMapKeySelector:
+    type: object
+    properties:
+      name:
+        type: string
+      key:
+        type: string
+  ResourceRequirements:
+    type: object
+    properties:
+      limits:
+        type: object
+        description: Limits describes the maximum amount of compute resources allowed.
+      requests:
+        type: object
+        description: |
+          Requests describes the minimum amount of compute resources required. 
+          If Request is omitted for a container, it defaults to Limits if that is explicitly specified,
+          otherwise to an implementation-defined value
+  VolumeMount:
+    type: object
+    required: [name, mountPath]
+    properties:
+      name:
+        type: string
+        description: This must match the Name of a Volume [above].
+      readOnly:
+        type: boolean
+        description: Defaults to false (read-write).
+      mountPath:
+        type: string
+        description: Must not contain ':'.
+  Probe:
+    type: object
+    description: |
+      Probe describes a health check to be performed against a container to determine whether it is
+      alive or ready to receive traffic.
+    properties:
+      exec:
+        type: object
+        description: |
+          One and only one of the following should be specified. 
+          Exec specifies the action to take.
+        properties:
+          command:
+            type: array
+            description: |
+              Command is the command line to execute inside the container, the working directory for the
+              command  is root ('/') in the container's filesystem.  The command is simply exec'd, it is
+              not run inside a shell, so traditional shell instructions ('|', etc) won't work.  To use a
+              shell, you need to explicitly call out to that shell.
+            items:
+              type: string
+      httpGet:
+        description: |
+          HTTPGet specifies the http request to perform.
+        $ref: "#/definitions/HTTPGetAction"
+      tcpSocket:
+        type: object
+        description: |
+          TCPSocket specifies an action involving a TCP port.
+        properties:
+          port:
+            type: string
+            description: Port to connect to.
+      initialDelaySeconds:
+        type: integer
+        description: Length of time before health checking is activated. In seconds.
+      timeoutSeconds:
+        type: integer
+        description: Length of time before health checking times out. In seconds.
+      periodSeconds:
+        type: integer
+        description: How often (in seconds) to perform the probe.
+      successThreshold:
+        type: integer
+        description: | 
+          Minimum consecutive successes for the probe to be considered successful after having failed.
+          Must be 1 for liveness.
+      failureThreshold:
+        type: integer
+        description: |
+          Minimum consecutive failures for the probe to be considered failed after having succeeded.
+  HTTPGetAction:
+    type: object
+    properties:
+      path:
+        type: string
+        description: Path to access on the HTTP server.
+      port:
+        type: string
+        description: Name or number of the port to access on the container.
+      host:
+        type: string
+        description: | 
+          Host name to connect to, defaults to the pod IP. You 
+          probably want to set "Host" in httpHeaders instead.
+      scheme:
+        type: string
+        description: |
+          Scheme to use for connecting to the host, defaults to HTTP.
+      httpHeaders:
+        type: array
+        description: |
+          Custom headers to set in the request. HTTP allows repeated headers.
+        items:
+          type: object
+          properties:
+            name:
+              type: string
+            value:
+              type: string
+  Lifecycle:
+    type: object
+    properties:
+      postStart:
+        description: |
+          PostStart is called immediately after a container is created. If the handler fails, the
+          container is terminated and restarted.
+        type: object
+        properties:
+          exec:
+            type: object
+            description: |
+              One and only one of the following should be specified. 
+              Exec specifies the action to take.
+            properties:
+              command:
+                type: array
+                description: |
+                  Command is the command line to execute inside the container, the working directory for the
+                  command  is root ('/') in the container's filesystem.  The command is simply exec'd, it is
+                  not run inside a shell, so traditional shell instructions ('|', etc) won't work.  To use a
+                  shell, you need to explicitly call out to that shell.
+                items:
+                  type: string
+          httpGet:
+            description: |
+              HTTPGet specifies the http request to perform.
+            $ref: "#/definitions/HTTPGetAction"
+          tcpSocket:
+            type: object
+            description: |
+              TCPSocket specifies an action involving a TCP port.
+            properties:
+              port:
+                type: string
+                description: Port to connect to.
+      preStop:
+        description: |
+          PreStop is called immediately before a container is terminated. The reason for termination is
+          passed to the handler. Regardless of the outcome of the handler, the container is eventually
+          terminated.
+        type: object
+        properties:
+          exec:
+            type: object
+            description: |
+              One and only one of the following should be specified. 
+              Exec specifies the action to take.
+            properties:
+              command:
+                type: array
+                description: |
+                  Command is the command line to execute inside the container, the working directory for the
+                  command  is root ('/') in the container's filesystem.  The command is simply exec'd, it is
+                  not run inside a shell, so traditional shell instructions ('|', etc) won't work.  To use a
+                  shell, you need to explicitly call out to that shell.
+                items:
+                  type: string
+          httpGet:
+            description: |
+              HTTPGet specifies the http request to perform.
+            $ref: "#/definitions/HTTPGetAction"
+          tcpSocket:
+            type: object
+            description: |
+              TCPSocket specifies an action involving a TCP port.
+            properties:
+              port:
+                type: string
+                description: Port to connect to.
+  SecurityContext:
+    type: object
+    properties:
+      capabilities:
+        type: object
+        description: |
+          The capabilities to add/drop when running containers. 
+          Defaults to the default set of capabilities granted by the container runtime.
+        properties:
+          add:
+            type: array
+            items:
+              type: string
+          drop:
+            type: array
+            items:
+              type: string
+      privileged:
+        type: boolean
+        description: |
+          Run container in privileged mode. Processes in privileged containers 
+          are essentially equivalent to root on the host. Defaults to false.
+      seLinuxOptions:
+        type: object
+        description: |
+          The SELinux context to be applied to the container. If unspecified, 
+          the container runtime will allocate a random SELinux context for each 
+          container.  May also be set in PodSecurityContext.  If set in both 
+          SecurityContext and PodSecurityContext, the value specified in 
+          SecurityContext takes precedence.
+        properties:
+          user:
+            type: string
+          role:
+            type: string
+          type:
+            type: string
+          level:
+            type: string
+      runAsUser:
+        type: integer
+        description: |
+          The UID to run the entrypoint of the container process. Defaults to 
+          user specified in image metadata if unspecified. May also be set in 
+          PodSecurityContext.  If set in both SecurityContext and 
+          PodSecurityContext, the value specified in SecurityContext takes 
+          precedence.
+      runAsNonRoot:
+        type: boolean
+        description: |
+          Indicates that the container must run as a non-root user. If true, 
+          the Kubelet will validate the image at runtime to ensure that it does 
+          not run as UID 0 (root) and fail to start the container if it does. 
+          If unset or false, no such validation will be performed. May also be 
+          set in PodSecurityContext.  If set in both SecurityContext and 
+          PodSecurityContext, the value specified in SecurityContext takes 
+          precedence.
+      readOnlyRootFilesystem:
+        type: boolean
+        description: |
+          The read-only root filesystem allows you to restrict the locations 
+          that an application can write files to, ensuring the persistent data 
+          can only be written to mounts.
+  ServicePort:
+    type: object
+    required: [protocol, port, nodePort]
+    properties:
+      name:
+        type: string
+        description: |
+          Optional if only one ServicePort is defined on this service - The
+          name of this port within the service.  This must be a DNS_LABEL.
+          All ports within a ServiceSpec must have unique names.  This maps to
+          the 'Name' field in EndpointPort objects.
+      protocol:
+        type: string
+        description: |
+          The IP protocol for this port.  Supports "TCP" and "UDP".
+      port:
+        type: integer
+        description: The port that will be exposed on the service.
+      targetPort:
+        type: string
+        description: |
+          Optional. The target port on pods selected by this service.  If this
+          is a string, it will be looked up as a named port in the target
+          Pod's container ports.  If this is not specified, the value
+          of the 'port' field is used (an identity map). This field is ignored 
+          for services with clusterIP=None, and should be omitted or set equal 
+          to the 'port' field.
+      nodePort:
+        type: integer
+        description: |
+          The port on each node on which this service is exposed. Default is 
+          to auto-allocate a port if the ServiceType of this Service requires one.
+  PodStatus:
+    type: object
+    properties:
+      PodName:
+        type: string
+      ServiceId:
+        type: string
+      Status:
+        type: string
+      StatusMessage:
+        type: string
+
