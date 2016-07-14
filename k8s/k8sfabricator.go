@@ -453,8 +453,10 @@ func GetServiceInternalHost(port api.ServicePort, service api.Service) string {
 
 func GetConsulServiceName(port api.ServicePort, service api.Service) string {
 	portName := ""
-	if port.Name != "" {
-		portName = "-" + port.Name
+	if len(service.Spec.Ports) > 1 {
+		if port.Name != "" {
+			portName = "-" + port.Name
+		}
 	}
 	return service.ObjectMeta.Name + portName
 }
