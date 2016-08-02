@@ -153,8 +153,6 @@ func (c *Context) ServiceInstancesPut(rw web.ResponseWriter, req *web.Request) {
 	}
 
 	ret := ServiceInstancesPutResponse{nil, nil}
-	url := "UrlNotYetSupported"
-	ret.DashboardUrl = &url
 	if async {
 		WriteJson(rw, ret, http.StatusAccepted)
 	} else {
