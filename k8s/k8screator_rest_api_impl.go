@@ -134,16 +134,20 @@ func (k *K8sCreatorConnector) GetOrCreateCluster(org string) (K8sClusterCredenti
 		status, kresp, err := k.GetCluster(org)
 
 		if status == 200 {
-			if k.IsApiWorking(kresp) {
-				logger.Warning("[GetOrCreateCluster] Cluster already created for org:", org)
-				if wasCreated == true {
-					err = k.CreateSecretForPrivateTapRepo(kresp)
-					if err != nil {
-						logger.Error("[GetOrCreateCluster] ERROR: Unable to create secret with credentials for private TAP repo!", err)
+			for i := 0; i < 30; i++ {
+				if k.IsApiWorking(kresp) {
+					logger.Warning("[GetOrCreateCluster] Cluster already created for org:", org)
+					if wasCreated == true {
+						err = k.CreateSecretForPrivateTapRepo(kresp)
+						if err != nil {
+							logger.Error("[GetOrCreateCluster] ERROR: Unable to create secret with credentials for private TAP repo!", err)
+						}
 					}
+					return kresp, nil
 				}
-				return kresp, nil
+				time.Sleep(time.Minute)
 			}
+			return K8sClusterCredential{}, errors.New("KubernetesApi is not ready!")
 		} else if status == 404 {
 			if !wasCreated {
 				logger.Info("[GetOrCreateCluster] Creating cluster for org:", org)
