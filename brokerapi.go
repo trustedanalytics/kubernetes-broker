@@ -332,29 +332,37 @@ func (c *Context) ServiceInstancesDelete(rw web.ResponseWriter, req *web.Request
 		return
 	}
 
-	status, creds, err := c.CreatorConnector.GetCluster(org)
+	instanceDetails, err := c.CloudProvider.GetInstanceDetailsFromCfById(instance_id)
 	if err != nil {
-		if status != 200 {
+		Respond500(rw, err)
+		return
+	}
+
+	if instanceDetails.Entity.LastOperation.State != "failed" {
+		status, creds, err := c.CreatorConnector.GetCluster(org)
+		if err != nil {
+			if status != 200 {
+				WriteJson(rw, ServiceInstancesDeleteResponse{}, http.StatusGone)
+				return
+			}
+			Respond500(rw, err)
+			return
+		}
+
+		if status == 404 || status == 204 {
+			logger.Error("Cluster not exist! We can't remove service, service_id:", service_id)
 			WriteJson(rw, ServiceInstancesDeleteResponse{}, http.StatusGone)
 			return
 		}
-		Respond500(rw, err)
-		return
-	}
 
-	if status == 404 || status == 204 {
-		logger.Error("Cluster not exist! We can't remove service, service_id:", service_id)
-		WriteJson(rw, ServiceInstancesDeleteResponse{}, http.StatusGone)
-		return
-	}
+		err = c.KubernetesApi.DeleteAllByServiceId(creds, instance_id)
+		if err != nil {
+			Respond500(rw, err)
+			return
+		}
 
-	err = c.KubernetesApi.DeleteAllByServiceId(creds, instance_id)
-	if err != nil {
-		Respond500(rw, err)
-		return
+		go removeCluster(creds, org)
 	}
-
-	go removeCluster(creds, org)
 
 	logger.Info("Service DELETED. Id:", service_id)
 	WriteJson(rw, ServiceInstancesDeleteResponse{}, http.StatusOK)

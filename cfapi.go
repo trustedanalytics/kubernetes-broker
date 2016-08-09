@@ -132,13 +132,20 @@ type CfEntityDetails struct {
 	GatewayData        interface{}            `json:"gateway_data"`
 	DashboardUrl       string                 `json:"dashboard_url"`
 	Type               string                 `json:"type"`
-	LastOperation      interface{}            `json:"last_operation"`
+	LastOperation      CfLastOperation        `json:"last_operation"`
 	Tags               []string               `json:"tags"`
 	SpaceUrl           string                 `json:"space_url"`
 	ServicePlanUrl     string                 `json:"service_plan_url"`
 	ServiceBindingsUrl string                 `json:"service_bindings_url"`
 	ServiceKeysUrl     string                 `json:"service_keys_url"`
 	RoutesUrl          string                 `json:"routes_url"`
+}
+
+type CfLastOperation struct {
+	Type        string `json:"type"`
+	State       string `json:"state"`
+	Description string `json:"description"`
+	UpdatedAt   string `json:"updated_at"`
 }
 
 type CfInstanceDetails struct {

@@ -294,6 +294,7 @@ func TestServiceInstancesGetLastOperation(t *testing.T) {
 
 func TestServiceInstancesDelete(t *testing.T) {
 	testId := "1223"
+	instanceDetail := CfInstanceDetails{Entity: CfEntityDetails{LastOperation: CfLastOperation{State: "succeeded"}}}
 	waitBeforeRemoveClusterIntervalSec = time.Millisecond
 	checkPVbeforeRemoveClusterIntervalSec = time.Second
 
@@ -304,6 +305,7 @@ func TestServiceInstancesDelete(t *testing.T) {
 		Convey("Should returns succeeded response", func() {
 			gomock.InOrder(
 				mockCloudAPi.EXPECT().GetOrgIdAndSpaceIdFromCfByServiceInstanceId(testId).Return(tst.TestOrgGuid, tst.TestSpaceGuid, nil),
+				mockCloudAPi.EXPECT().GetInstanceDetailsFromCfById(testId).Return(instanceDetail, nil),
 				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
 				mockKubernetesApi.EXPECT().DeleteAllByServiceId(testCreds, testId).Return(nil),
 				mockKubernetesApi.EXPECT().GetServices(testCreds, tst.TestOrgGuid).Return(nil, nil),
@@ -321,6 +323,7 @@ func TestServiceInstancesDelete(t *testing.T) {
 		Convey("Should wait until all PV will be removed and then remove cluster", func() {
 			gomock.InOrder(
 				mockCloudAPi.EXPECT().GetOrgIdAndSpaceIdFromCfByServiceInstanceId(testId).Return(tst.TestOrgGuid, tst.TestSpaceGuid, nil),
+				mockCloudAPi.EXPECT().GetInstanceDetailsFromCfById(testId).Return(instanceDetail, nil),
 				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
 				mockKubernetesApi.EXPECT().DeleteAllByServiceId(testCreds, testId).Return(nil),
 				mockKubernetesApi.EXPECT().GetServices(testCreds, tst.TestOrgGuid).Return(nil, nil),
@@ -344,6 +347,7 @@ func TestServiceInstancesDelete(t *testing.T) {
 		Convey("Should break removoving cluster if service occur", func() {
 			gomock.InOrder(
 				mockCloudAPi.EXPECT().GetOrgIdAndSpaceIdFromCfByServiceInstanceId(testId).Return(tst.TestOrgGuid, tst.TestSpaceGuid, nil),
+				mockCloudAPi.EXPECT().GetInstanceDetailsFromCfById(testId).Return(instanceDetail, nil),
 				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
 				mockKubernetesApi.EXPECT().DeleteAllByServiceId(testCreds, testId).Return(nil),
 				mockKubernetesApi.EXPECT().GetServices(testCreds, tst.TestOrgGuid).Return([]api.Service{api.Service{}}, nil),
@@ -358,6 +362,7 @@ func TestServiceInstancesDelete(t *testing.T) {
 		Convey("Should returns error on kubernetes error", func() {
 			gomock.InOrder(
 				mockCloudAPi.EXPECT().GetOrgIdAndSpaceIdFromCfByServiceInstanceId(testId).Return(tst.TestOrgGuid, tst.TestSpaceGuid, nil),
+				mockCloudAPi.EXPECT().GetInstanceDetailsFromCfById(testId).Return(instanceDetail, nil),
 				mockCreatorConnector.EXPECT().GetCluster(tst.TestOrgGuid).Return(200, testCreds, nil),
 				mockKubernetesApi.EXPECT().DeleteAllByServiceId(testCreds, testId).
 					Return(errors.New("KUBERNETES ERROR")),
