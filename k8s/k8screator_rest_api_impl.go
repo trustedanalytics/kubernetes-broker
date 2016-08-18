@@ -147,7 +147,11 @@ func (k *K8sCreatorConnector) GetOrCreateCluster(org string) (K8sClusterCredenti
 				}
 				time.Sleep(time.Minute)
 			}
-			return K8sClusterCredential{}, errors.New("KubernetesApi is not ready!")
+			err := k.DeleteCluster(org)
+			if err != nil {
+				logger.Error("Can't delete cluster! Org:", org, err)
+			}
+			return K8sClusterCredential{}, errors.New("KubernetesApi is not ready! Cluster removed!")
 		} else if status == 404 {
 			if !wasCreated {
 				logger.Info("[GetOrCreateCluster] Creating cluster for org:", org)
